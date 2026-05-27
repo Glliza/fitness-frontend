@@ -75,14 +75,28 @@ const ConsumablesPage = () => {
     const handleExport = async (format) => {
         try {
             const response = await consumablesService.exportReport(format);
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            
+            let fileExtension = format;
+            let mimeType = '';
+            
+            if (format === 'pdf') {
+                fileExtension = 'pdf';
+                mimeType = 'application/pdf';
+            } else if (format === 'excel') {
+                fileExtension = 'xlsx';
+                mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            }
+            
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `consumables_report.${format}`);
+            link.setAttribute('download', `consumables_report.${fileExtension}`);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
         } catch (err) {
+            console.error('Export error:', err);
             setError('Ошибка экспорта');
         }
     };
@@ -93,7 +107,7 @@ const ConsumablesPage = () => {
 
     const styles = {
         container: { padding: '2rem' },
-        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
+        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
         formContainer: { padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', marginBottom: '2rem' },
         formRow: { display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' },
         formGroup: { flex: 1, minWidth: '150px' },
@@ -102,10 +116,12 @@ const ConsumablesPage = () => {
         input: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
         button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
         expenseBtn: { backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        exportBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', marginLeft: '0.5rem' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem' },
+        exportBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
+        tableWrapper: { overflowX: 'auto' },
+        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', minWidth: '500px' },
+        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center', backgroundColor: '#f2f2f2' },
+        td: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center' },
+        firstCol: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2', fontWeight: 'bold' },
         error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
     };
 
@@ -186,28 +202,30 @@ const ConsumablesPage = () => {
             {loading ? (
                 <p>Загрузка...</p>
             ) : (
-                <table style={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={styles.th}>Расходный материал</th>
-                            {zones.map(zone => (
-                                <th key={zone.id} style={styles.th}>{zone.name}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {consumables.map(consumable => (
-                            <tr key={consumable.id}>
-                                <td style={styles.td}><strong>{consumable.name}</strong></td>
-                                {zones.map(zone => (
-                                    <td key={zone.id} style={styles.td}>
-                                        {getBalance(consumable.id, zone.id)}
-                                    </td>
+                <div style={styles.tableWrapper}>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Зона / Расходник</th>
+                                {consumables.map(consumable => (
+                                    <th key={consumable.id} style={styles.th}>{consumable.name}</th>
                                 ))}
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {zones.map(zone => (
+                                <tr key={zone.id}>
+                                    <td style={styles.firstCol}>{zone.name}</td>
+                                    {consumables.map(consumable => (
+                                        <td key={consumable.id} style={styles.td}>
+                                            {getBalance(consumable.id, zone.id)}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     );

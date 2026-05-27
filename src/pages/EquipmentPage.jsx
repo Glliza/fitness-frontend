@@ -4,12 +4,18 @@ import { zoneService } from '../services/zoneService';
 
 const EquipmentPage = () => {
     const [equipment, setEquipment] = useState([]);
+    const [filteredEquipment, setFilteredEquipment] = useState([]);
     const [zones, setZones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    
+    // Фильтры
+    const [filterZone, setFilterZone] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    
     const [formData, setFormData] = useState({
         zoneId: '',
         name: '',
@@ -32,8 +38,8 @@ const EquipmentPage = () => {
             const response = await equipmentService.getAll();
             console.log('=== ДАННЫЕ С СЕРВЕРА ===');
             console.log('Оборудование:', response.data);
-            console.log('Первое оборудование - zoneId:', response.data[0]?.zoneId);
             setEquipment(response.data);
+            setFilteredEquipment(response.data);
             setError('');
         } catch (err) {
             setError('Ошибка загрузки оборудования');
@@ -43,10 +49,36 @@ const EquipmentPage = () => {
         }
     };
 
+    // Функция фильтрации
+    const applyFilters = () => {
+        let filtered = [...equipment];
+        
+        if (filterZone) {
+            filtered = filtered.filter(item => item.zoneId === parseInt(filterZone));
+        }
+        
+        if (filterStatus) {
+            filtered = filtered.filter(item => item.status === filterStatus);
+        }
+        
+        setFilteredEquipment(filtered);
+    };
+
+    // Сброс фильтров
+    const resetFilters = () => {
+        setFilterZone('');
+        setFilterStatus('');
+        setFilteredEquipment(equipment);
+    };
+
     useEffect(() => {
         loadZones();
         loadEquipment();
     }, []);
+
+    useEffect(() => {
+        applyFilters();
+    }, [filterZone, filterStatus, equipment]);
 
     const resetForm = () => {
         setFormData({
@@ -73,21 +105,11 @@ const EquipmentPage = () => {
     };
 
     const handleSubmit = async (e) => {
-        
         e.preventDefault();
 
         console.log('=== ОТПРАВКА ДАННЫХ ===');
         console.log('formData:', formData);
     
-        const dataToSend = {
-            zoneId: parseInt(formData.zoneId),
-            name: formData.name,
-            status: formData.status,
-            dataBuy: formData.dataBuy,
-        };
-    
-        console.log('dataToSend:', dataToSend);
-        
         if (!formData.zoneId) {
             setError('Выберите зону');
             return;
@@ -143,6 +165,11 @@ const EquipmentPage = () => {
     const styles = {
         container: { padding: '2rem' },
         header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
+        filterContainer: { display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' },
+        filterGroup: { flex: 1, minWidth: '150px' },
+        filterLabel: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
+        filterSelect: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
+        resetBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', height: '38px' },
         table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' },
         th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
         td: { border: '1px solid #ddd', padding: '0.75rem' },
@@ -162,10 +189,14 @@ const EquipmentPage = () => {
             padding: '0.25rem 0.5rem',
             borderRadius: '4px',
             fontSize: '0.875rem',
-            backgroundColor: status === 'Списано' ? '#dc3545' : status === 'На ремонте' ? '#ffc107' : '#28a745',
-            color: status === 'Списано' || status === 'На ремонте' ? 'white' : 'white',
+            backgroundColor: status === 'Списано' ? '#dc3545' : status === 'На ремонте' ? '#ffc107' : status === 'Сломано' ? '#fd7e14' : '#28a745',
+            color: status === 'Списано' || status === 'На ремонте' || status === 'Сломано' ? 'white' : 'white',
         }),
+        countInfo: { marginTop: '1rem', fontSize: '0.875rem', color: '#6c757d' },
     };
+
+    // Уникальные статусы для фильтра
+    const uniqueStatuses = [...new Set(equipment.map(item => item.status))];
 
     return (
         <div style={styles.container}>
@@ -179,6 +210,41 @@ const EquipmentPage = () => {
             </div>
 
             {error && <div style={styles.error}>{error}</div>}
+
+            {/* Блок фильтрации */}
+            <div style={styles.filterContainer}>
+                <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Фильтр по зоне</label>
+                    <select
+                        style={styles.filterSelect}
+                        value={filterZone}
+                        onChange={(e) => setFilterZone(e.target.value)}
+                    >
+                        <option value="">Все зоны</option>
+                        {zones.map(zone => (
+                            <option key={zone.id} value={zone.id}>{zone.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Фильтр по статусу</label>
+                    <select
+                        style={styles.filterSelect}
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                        <option value="">Все статусы</option>
+                        {uniqueStatuses.map(status => (
+                            <option key={status} value={status}>{status}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <button style={styles.resetBtn} onClick={resetFilters}>
+                        Сбросить фильтры
+                    </button>
+                </div>
+            </div>
 
             {showForm && (
                 <div style={styles.formContainer}>
@@ -220,6 +286,7 @@ const EquipmentPage = () => {
                                     style={styles.select}
                                 >
                                     <option value="Новое">Новое</option>
+                                    <option value="В работе">В работе</option>
                                     <option value="Сломано">Сломано</option>
                                     <option value="На ремонте">На ремонте</option>
                                     <option value="Списано">Списано</option>
@@ -251,39 +318,44 @@ const EquipmentPage = () => {
             {loading ? (
                 <p>Загрузка...</p>
             ) : (
-                <table style={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={styles.th}>Инв. номер</th>
-                            <th style={styles.th}>Название</th>
-                            <th style={styles.th}>Зона</th>
-                            <th style={styles.th}>Статус</th>
-                            <th style={styles.th}>Дата покупки</th>
-                            <th style={styles.th}>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {equipment.map((item) => (
-                            <tr key={item.id}>
-                                <td style={styles.td}>{item.id}</td>
-                                <td style={styles.td}>{item.name}</td>
-                                <td style={styles.td}>{getZoneName(item.zoneId)}</td>
-                                <td style={styles.td}>
-                                    <span style={styles.statusBadge(item.status)}>{item.status}</span>
-                                </td>
-                                <td style={styles.td}>{item.dataBuy}</td>
-                                <td style={styles.td}>
-                                    <button style={styles.editBtn} onClick={() => handleEdit(item)}>
-                                        Изменить
-                                    </button>
-                                    <button style={styles.deleteBtn} onClick={() => handleDelete(item.id)}>
-                                        Удалить
-                                    </button>
-                                </td>
+                <>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Инв. номер</th>
+                                <th style={styles.th}>Название</th>
+                                <th style={styles.th}>Зона</th>
+                                <th style={styles.th}>Статус</th>
+                                <th style={styles.th}>Дата покупки</th>
+                                <th style={styles.th}>Действия</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {filteredEquipment.map((item) => (
+                                <tr key={item.id}>
+                                    <td style={styles.td}>{item.id}</td>
+                                    <td style={styles.td}>{item.name}</td>
+                                    <td style={styles.td}>{getZoneName(item.zoneId)}</td>
+                                    <td style={styles.td}>
+                                        <span style={styles.statusBadge(item.status)}>{item.status}</span>
+                                    </td>
+                                    <td style={styles.td}>{item.dataBuy}</td>
+                                    <td style={styles.td}>
+                                        <button style={styles.editBtn} onClick={() => handleEdit(item)}>
+                                            Изменить
+                                        </button>
+                                        <button style={styles.deleteBtn} onClick={() => handleDelete(item.id)}>
+                                            Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <div style={styles.countInfo}>
+                        Показано: {filteredEquipment.length} из {equipment.length} единиц оборудования
+                    </div>
+                </>
             )}
         </div>
     );
