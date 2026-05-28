@@ -44,6 +44,7 @@ const Menu = () => {
             <Link to="/torepair" style={getActiveStyle('/torepair')}>ТО и ремонты</Link>
             <Link to="/inventarization" style={getActiveStyle('/inventarization')}>Инвентаризация</Link>
             <Link to="/requestbuy" style={getActiveStyle('/requestbuy')}>Заявки на закупку</Link>
+            <Link to="/history" style={getActiveStyle('/history')}>История ТО</Link>
             <div style={{ flex: 1 }}></div>
             <span style={{ padding: '0.5rem 1rem' }}>👤 {user?.fio || user?.login}</span>
             <button onClick={handleLogout} style={{

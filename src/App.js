@@ -10,6 +10,7 @@ import ConsumablesPage from './pages/ConsumablesPage';
 import TORepairPages from './pages/TORepairPages';
 import InventarizationPage from './pages/InventarizationPage';
 import RequestBuyPage from './pages/RequestBuyPage';
+import HistoryPage from './pages/HistoryPage';
 
 function App() {
     return (
@@ -70,6 +71,17 @@ function App() {
                             <>
                                 <Menu />
                                 <RequestBuyPage />
+                            </>
+                        </ProtectedRoute>
+                    } />
+
+
+                    // Добавьте в Routes:
+                    <Route path="/history" element={
+                        <ProtectedRoute>
+                            <>
+                                <Menu />
+                                <HistoryPage />
                             </>
                         </ProtectedRoute>
                     } />

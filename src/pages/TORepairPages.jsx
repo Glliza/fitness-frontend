@@ -8,8 +8,11 @@ const TORepairPages = () => {
     const [equipment, setEquipment] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [activeTab, setActiveTab] = useState('to');
     const [showForm, setShowForm] = useState(false);
+    const [updatingId, setUpdatingId] = useState(null);
+    
     const [formData, setFormData] = useState({
         equipmentId: '',
         type: '',
@@ -17,14 +20,14 @@ const TORepairPages = () => {
         description: '',
         worker: '',
     });
+    
     const [repairForm, setRepairForm] = useState({
         equipmentInventoryNumber: '',
-        creator: 'Администратор',
-        tORepairId: null,
+        creator: '',
+        description: '',
     });
-    const [history, setHistory] = useState([]);
-    const [selectedEquipment, setSelectedEquipment] = useState('');
-    const [nextDate, setNextDate] = useState(null);
+
+    const statusOptions = ['Открыта', 'В работе', 'Выполнена'];
 
     const loadData = async () => {
         try {
@@ -36,6 +39,7 @@ const TORepairPages = () => {
             await loadToRepairs();
             await loadRequests();
             setError('');
+            setSuccess('');
         } catch (err) {
             setError('Ошибка загрузки данных');
         } finally {
@@ -46,6 +50,7 @@ const TORepairPages = () => {
     const loadToRepairs = async () => {
         try {
             const response = await maintenanceService.getAllTO();
+            console.log('Загружены ТО:', response.data);
             setToRepairs(response.data);
         } catch (err) {
             console.error(err);
@@ -55,18 +60,8 @@ const TORepairPages = () => {
     const loadRequests = async () => {
         try {
             const response = await maintenanceService.getAllRequests();
+            console.log('Загружены заявки:', response.data);
             setRequests(response.data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const loadHistory = async (equipmentId) => {
-        try {
-            const response = await maintenanceService.getHistory(equipmentId);
-            setHistory(response.data);
-            const nextDateRes = await maintenanceService.getNextTODate(equipmentId);
-            setNextDate(nextDateRes.data);
         } catch (err) {
             console.error(err);
         }
@@ -78,40 +73,104 @@ const TORepairPages = () => {
 
     const handleCreateTO = async (e) => {
         e.preventDefault();
+        if (!formData.equipmentId || !formData.type || !formData.plannedDate) {
+            setError('Заполните обязательные поля');
+            return;
+        }
         try {
-            await maintenanceService.createTO(formData);
+            const dataToSend = {
+                equipmentId: parseInt(formData.equipmentId),
+                type: formData.type,
+                plannedDate: formData.plannedDate,
+                description: formData.description || '',
+                worker: formData.worker || ''
+            };
+            console.log('Отправка ТО:', dataToSend);
+            await maintenanceService.createTO(dataToSend);
             setShowForm(false);
             setFormData({ equipmentId: '', type: '', plannedDate: '', description: '', worker: '' });
-            loadToRepairs();
+            await loadToRepairs();
+            setSuccess('Плановое ТО успешно создано');
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
+            console.error('Ошибка:', err);
             setError('Ошибка создания ТО');
         }
     };
 
     const handleCreateRepair = async (e) => {
         e.preventDefault();
+        if (!repairForm.equipmentInventoryNumber || !repairForm.creator) {
+            setError('Заполните обязательные поля');
+            return;
+        }
         try {
-            await maintenanceService.createRepair(repairForm);
+            const dataToSend = {
+                equipmentInventoryNumber: parseInt(repairForm.equipmentInventoryNumber),
+                creator: repairForm.creator,
+                description: repairForm.description || '',
+                tORepairId: null
+            };
+            console.log('Отправка заявки:', dataToSend);
+            await maintenanceService.createRepair(dataToSend);
             setShowForm(false);
-            setRepairForm({ equipmentInventoryNumber: '', creator: 'Администратор', tORepairId: null });
-            loadRequests();
+            setRepairForm({ equipmentInventoryNumber: '', creator: '', description: '' });
+            await loadRequests();
+            // Обновляем статус оборудования на "Сломано"
+            if (repairForm.equipmentInventoryNumber) {
+                await equipmentService.changeStatus(repairForm.equipmentInventoryNumber, 'Сломано');
+            }
+            setSuccess('Заявка на ремонт успешно создана');
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
+            console.error('Ошибка:', err);
             setError('Ошибка создания заявки');
         }
     };
 
-    const handleUpdateStatus = async (requestId, newStatus, worker) => {
+    const handleCompleteTO = async (toId, equipmentId) => {
+        setUpdatingId(toId);
         try {
-            await maintenanceService.updateRequestStatus(requestId, newStatus, worker);
-            loadRequests();
+            await maintenanceService.completeTO(toId);
+            await loadToRepairs();
+            // Получаем следующую дату ТО
+            const nextDateRes = await maintenanceService.getNextTODate(equipmentId);
+            setSuccess(`ТО завершено. Следующее ТО запланировано на ${nextDateRes.data}`);
+            setTimeout(() => setSuccess(''), 5000);
+        } catch (err) {
+            setError('Ошибка завершения ТО');
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const handleUpdateRequestStatus = async (requestId, newStatus) => {
+        setUpdatingId(requestId);
+        try {
+            await maintenanceService.updateRequestStatus(requestId, newStatus, 'Система');
+            await loadRequests();
+            setSuccess(`Статус заявки изменён на "${newStatus}"`);
+            setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             setError('Ошибка изменения статуса');
+        } finally {
+            setUpdatingId(null);
         }
     };
 
     const getEquipmentName = (equipmentId) => {
         const eq = equipment.find(e => e.id === equipmentId);
         return eq ? eq.name : 'Неизвестно';
+    };
+
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'Открыта': return '#ffc107';
+            case 'В работе': return '#17a2b8';
+            case 'Выполнена': return '#28a745';
+            case 'Запланировано': return '#6c757d';
+            default: return '#6c757d';
+        }
     };
 
     const styles = {
@@ -121,6 +180,7 @@ const TORepairPages = () => {
         tab: { padding: '0.5rem 1rem', backgroundColor: '#e9ecef', border: 'none', borderRadius: '4px', cursor: 'pointer' },
         activeTab: { backgroundColor: '#007bff', color: 'white' },
         button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
+        completeBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' },
         formContainer: { marginTop: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', marginBottom: '2rem' },
         formRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap' },
         formGroup: { flex: 1, minWidth: '200px' },
@@ -130,9 +190,24 @@ const TORepairPages = () => {
         table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginTop: '1rem' },
         th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
         td: { border: '1px solid #ddd', padding: '0.75rem' },
-        statusBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', margin: '0.25rem' },
-        historyContainer: { marginTop: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' },
+        statusBadge: (status) => ({
+            display: 'inline-block',
+            padding: '0.25rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.875rem',
+            backgroundColor: getStatusColor(status),
+            color: 'white',
+        }),
+        statusSelect: { 
+            padding: '0.25rem 0.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid #ccc', 
+            cursor: 'pointer',
+            minWidth: '120px',
+            fontSize: '0.875rem'
+        },
         error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
+        success: { backgroundColor: '#d4edda', color: '#155724', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
     };
 
     return (
@@ -153,36 +228,68 @@ const TORepairPages = () => {
             </div>
 
             {error && <div style={styles.error}>{error}</div>}
+            {success && <div style={styles.success}>{success}</div>}
 
+            {/* Форма создания планового ТО */}
             {showForm && activeTab === 'to' && (
                 <div style={styles.formContainer}>
                     <h3>Новое плановое ТО</h3>
                     <form onSubmit={handleCreateTO}>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Оборудование</label>
-                                <select style={styles.select} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: parseInt(e.target.value)})} required>
+                                <label style={styles.label}>Оборудование *</label>
+                                <select 
+                                    style={styles.select} 
+                                    value={formData.equipmentId} 
+                                    onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} 
+                                    required
+                                >
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Тип ТО</label>
-                                <input type="text" style={styles.input} value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} required />
+                                <label style={styles.label}>Тип ТО *</label>
+                                <input 
+                                    type="text" 
+                                    style={styles.input} 
+                                    placeholder="Например: Смазка, Диагностика"
+                                    value={formData.type} 
+                                    onChange={(e) => setFormData({...formData, type: e.target.value})} 
+                                    required 
+                                />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Плановая дата</label>
-                                <input type="date" style={styles.input} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
+                                <label style={styles.label}>Плановая дата *</label>
+                                <input 
+                                    type="date" 
+                                    style={styles.input} 
+                                    value={formData.plannedDate} 
+                                    onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} 
+                                    required 
+                                />
                             </div>
                         </div>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Описание</label>
-                                <input type="text" style={styles.input} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                                <input 
+                                    type="text" 
+                                    style={styles.input} 
+                                    placeholder="Дополнительная информация"
+                                    value={formData.description} 
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                                />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Работник</label>
-                                <input type="text" style={styles.input} value={formData.worker} onChange={(e) => setFormData({...formData, worker: e.target.value})} />
+                                <label style={styles.label}>Ответственный работник</label>
+                                <input 
+                                    type="text" 
+                                    style={styles.input} 
+                                    placeholder="ФИО"
+                                    value={formData.worker} 
+                                    onChange={(e) => setFormData({...formData, worker: e.target.value})} 
+                                />
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Сохранить</button>
@@ -190,17 +297,44 @@ const TORepairPages = () => {
                 </div>
             )}
 
+            {/* Форма создания заявки на ремонт */}
             {showForm && activeTab === 'requests' && (
                 <div style={styles.formContainer}>
                     <h3>Новая заявка на ремонт</h3>
                     <form onSubmit={handleCreateRepair}>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Оборудование</label>
-                                <select style={styles.select} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: parseInt(e.target.value)})} required>
+                                <label style={styles.label}>Оборудование *</label>
+                                <select 
+                                    style={styles.select} 
+                                    value={repairForm.equipmentInventoryNumber} 
+                                    onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} 
+                                    required
+                                >
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Кто зафиксировал поломку *</label>
+                                <input 
+                                    type="text" 
+                                    style={styles.input} 
+                                    placeholder="ФИО сотрудника или клиента"
+                                    value={repairForm.creator} 
+                                    onChange={(e) => setRepairForm({...repairForm, creator: e.target.value})} 
+                                    required 
+                                />
+                            </div>
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Описание поломки</label>
+                                <input 
+                                    type="text" 
+                                    style={styles.input} 
+                                    placeholder="Описание проблемы"
+                                    value={repairForm.description} 
+                                    onChange={(e) => setRepairForm({...repairForm, description: e.target.value})} 
+                                />
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Создать заявку</button>
@@ -208,6 +342,7 @@ const TORepairPages = () => {
                 </div>
             )}
 
+            {/* Таблица планового ТО */}
             {activeTab === 'to' && (
                 <>
                     <h3>Плановое техническое обслуживание</h3>
@@ -217,9 +352,12 @@ const TORepairPages = () => {
                                 <tr>
                                     <th style={styles.th}>ID</th>
                                     <th style={styles.th}>Оборудование</th>
-                                    <th style={styles.th}>Тип</th>
+                                    <th style={styles.th}>Тип ТО</th>
                                     <th style={styles.th}>Плановая дата</th>
+                                    <th style={styles.th}>Описание</th>
+                                    <th style={styles.th}>Работник</th>
                                     <th style={styles.th}>Статус</th>
+                                    <th style={styles.th}>Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -229,47 +367,21 @@ const TORepairPages = () => {
                                         <td style={styles.td}>{getEquipmentName(to.equipmentId)}</td>
                                         <td style={styles.td}>{to.type}</td>
                                         <td style={styles.td}>{to.plannedDate}</td>
-                                        <td style={styles.td}>{to.status || 'Запланировано'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </>
-            )}
-
-            {activeTab === 'requests' && (
-                <>
-                    <h3>Заявки на ремонт</h3>
-                    {loading ? <p>Загрузка...</p> : (
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th style={styles.th}>ID</th>
-                                    <th style={styles.th}>Оборудование</th>
-                                    <th style={styles.th}>Создатель</th>
-                                    <th style={styles.th}>Дата</th>
-                                    <th style={styles.th}>Статус</th>
-                                    <th style={styles.th}>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {requests.map(req => (
-                                    <tr key={req.id}>
-                                        <td style={styles.td}>{req.id}</td>
-                                        <td style={styles.td}>{getEquipmentName(req.equipmentInventoryNumber)}</td>
-                                        <td style={styles.td}>{req.creator}</td>
-                                        <td style={styles.td}>{req.created_at?.split('T')[0]}</td>
-                                        <td style={styles.td}>{req.status}</td>
+                                        <td style={styles.td}>{to.description || '-'}</td>
+                                        <td style={styles.td}>{to.worker || '-'}</td>
                                         <td style={styles.td}>
-                                            {req.status === 'Открыта' && (
-                                                <button style={styles.statusBtn} onClick={() => handleUpdateStatus(req.id, 'В работе', 'Мастер')}>
-                                                    В работу
-                                                </button>
-                                            )}
-                                            {req.status === 'В работе' && (
-                                                <button style={styles.statusBtn} onClick={() => handleUpdateStatus(req.id, 'Выполнена', 'Мастер')}>
-                                                    Выполнить
+                                            <span style={styles.statusBadge(to.status || 'Запланировано')}>
+                                                {to.status || 'Запланировано'}
+                                            </span>
+                                        </td>
+                                        <td style={styles.td}>
+                                            {(to.status === 'Запланировано' || !to.status) && (
+                                                <button 
+                                                    style={styles.completeBtn} 
+                                                    onClick={() => handleCompleteTO(to.id, to.equipmentId)}
+                                                    disabled={updatingId === to.id}
+                                                >
+                                                    {updatingId === to.id ? '...' : 'Выполнить'}
                                                 </button>
                                             )}
                                         </td>
@@ -281,41 +393,54 @@ const TORepairPages = () => {
                 </>
             )}
 
-            <div style={styles.historyContainer}>
-                <h3>История ТО и ремонтов</h3>
-                <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Выберите оборудование</label>
-                        <select style={styles.select} value={selectedEquipment} onChange={(e) => { setSelectedEquipment(e.target.value); loadHistory(e.target.value); }}>
-                            <option value="">Выберите оборудование</option>
-                            {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
-                        </select>
-                    </div>
-                    {nextDate && <div><strong>Следующая дата ТО:</strong> {nextDate}</div>}
-                </div>
-                {history.length > 0 && (
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={styles.th}>Тип</th>
-                                <th style={styles.th}>Дата</th>
-                                <th style={styles.th}>Работник</th>
-                                <th style={styles.th}>Описание</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {history.map((h, idx) => (
-                                <tr key={idx}>
-                                    <td style={styles.td}>{h.type}</td>
-                                    <td style={styles.td}>{h.date}</td>
-                                    <td style={styles.td}>{h.worker}</td>
-                                    <td style={styles.td}>{h.description}</td>
+            {/* Таблица заявок на ремонт */}
+            {activeTab === 'requests' && (
+                <>
+                    <h3>Заявки на ремонт</h3>
+                    {loading ? <p>Загрузка...</p> : (
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>ID</th>
+                                    <th style={styles.th}>Оборудование</th>
+                                    <th style={styles.th}>Кто зафиксировал</th>
+                                    <th style={styles.th}>Описание</th>
+                                    <th style={styles.th}>Дата и время</th>
+                                    <th style={styles.th}>Статус</th>
+                                    <th style={styles.th}>Действия</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+                            </thead>
+                            <tbody>
+                                {requests.map(req => (
+                                    <tr key={req.id}>
+                                        <td style={styles.td}>{req.id}</td>
+                                        <td style={styles.td}>{getEquipmentName(req.equipmentInventoryNumber)}</td>
+                                        <td style={styles.td}>{req.creator || '-'}</td>
+                                        <td style={styles.td}>{req.description || '-'}</td>
+                                        <td style={styles.td}>{req.created_at ? new Date(req.created_at).toLocaleString() : '-'}</td>
+                                        <td style={styles.td}>
+                                            <span style={styles.statusBadge(req.status)}>{req.status}</span>
+                                        </td>
+                                        <td style={styles.td}>
+                                            <select
+                                                style={styles.statusSelect}
+                                                value={req.status}
+                                                onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)}
+                                                disabled={updatingId === req.id}
+                                            >
+                                                {statusOptions.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                            {updatingId === req.id && <span> ⏳</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </>
+            )}
         </div>
     );
 };
