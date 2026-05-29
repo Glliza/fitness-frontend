@@ -1,7 +1,8 @@
 import api from './api';
 
 export const consumablesService = {
-    getAll: () => api.get('/consumables'),
+    getAll: (page = 0, size = 10, sortBy = 'id', sortDir = 'asc') => 
+        api.get(`/consumables?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
     addIncome: (consumableId, zoneId, amount) => 
         api.post(`/consumables/income?consumableId=${consumableId}&zoneId=${zoneId}&amount=${amount}`),
     addExpense: (consumableId, zoneId, amount) => 

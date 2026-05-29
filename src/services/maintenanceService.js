@@ -1,8 +1,10 @@
 import api from './api';
 
 export const maintenanceService = {
-    getAllTO: () => api.get('/maintenance/to'),
-    getAllRequests: () => api.get('/maintenance/repairs'),
+    getAllTO: (page = 0, size = 10, sortBy = 'plannedDate', sortDir = 'desc') => 
+        api.get(`/maintenance/to?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
+    getAllRequests: (page = 0, size = 10, sortBy = 'createdAt', sortDir = 'desc') => 
+        api.get(`/maintenance/repairs?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
     createTO: (data) => api.post('/maintenance/to', data),
     createRepair: (data) => api.post('/maintenance/repairs', data),
     updateRequestStatus: (requestId, status, worker) => 

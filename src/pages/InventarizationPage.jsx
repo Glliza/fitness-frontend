@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { inventarizationService } from '../services/inventarizationService';
 import { zoneService } from '../services/zoneService';
 import { equipmentService } from '../services/equipmentService';
+import { commonStyles } from '../styles/globalStyles';
 
 const InventarizationPage = () => {
     const [zones, setZones] = useState([]);
@@ -14,13 +15,12 @@ const InventarizationPage = () => {
     const [report, setReport] = useState(null);
     const [inProgress, setInProgress] = useState(false);
     const [isAllMode, setIsAllMode] = useState(false);
-    // Храним маппинг equipmentInventoryNumber -> inventarizationId
     const [invIdMap, setInvIdMap] = useState({});
 
     const loadZones = async () => {
         try {
-            const response = await zoneService.getAll();
-            setZones(response.data);
+            const response = await zoneService.getAll(0, 100);
+            setZones(response.data.content || []);
         } catch (err) {
             console.error(err);
         }
@@ -28,8 +28,8 @@ const InventarizationPage = () => {
 
     const loadEquipment = async () => {
         try {
-            const response = await equipmentService.getAll();
-            setEquipment(response.data);
+            const response = await equipmentService.getAllList();
+            setEquipment(response.data.content || []);
         } catch (err) {
             console.error(err);
         }
@@ -69,11 +69,7 @@ const InventarizationPage = () => {
         try {
             const response = await inventarizationService.startAll();
             console.log('startAll response:', response.data);
-            
-            // Сохраняем группированные данные
             setGroupedInventarizations(response.data);
-            
-            // Собираем все items в плоский список и создаём маппинг
             const allItems = [];
             const newInvIdMap = {};
             
@@ -84,10 +80,8 @@ const InventarizationPage = () => {
                             ...item,
                             zoneId: group.zoneId,
                             zoneName: group.zoneName,
-                            // Если нет id, используем equipmentInventoryNumber как ключ
                             id: item.id || item.equipmentInventoryNumber
                         });
-                        // Сохраняем связь equipmentInventoryNumber -> inventarizationId
                         if (item.id) {
                             newInvIdMap[item.equipmentInventoryNumber] = item.id;
                         }
@@ -109,20 +103,14 @@ const InventarizationPage = () => {
     const handlePerformStep = async (invId, equipmentInventoryNumber, actualCount) => {
         setLoading(true);
         try {
-            // Определяем правильный ID для отправки
             let stepId = invId;
-            
-            // Если invId нет или он не число, пробуем найти в маппинге
             if (!stepId || stepId === 'undefined') {
                 stepId = invIdMap[equipmentInventoryNumber];
             }
-            
-            // Если всё ещё нет ID, пробуем найти в inventarizations
             if (!stepId) {
                 const found = inventarizations.find(inv => inv.equipmentInventoryNumber === equipmentInventoryNumber);
                 stepId = found?.id;
             }
-            
             if (!stepId) {
                 setError('Не удалось определить ID инвентаризации');
                 setLoading(false);
@@ -131,7 +119,6 @@ const InventarizationPage = () => {
             
             await inventarizationService.performStep(stepId, actualCount);
             
-            // Обновляем статус в плоском списке
             const updated = inventarizations.map(inv => 
                 (inv.id === stepId || inv.equipmentInventoryNumber === equipmentInventoryNumber) 
                     ? { ...inv, realCount: actualCount } 
@@ -139,7 +126,6 @@ const InventarizationPage = () => {
             );
             setInventarizations(updated);
             
-            // Обновляем и в группированном списке
             if (isAllMode) {
                 const updatedGroups = groupedInventarizations.map(group => ({
                     ...group,
@@ -186,30 +172,18 @@ const InventarizationPage = () => {
     const remainingCount = inventarizations.filter(inv => inv.realCount === null || inv.realCount === undefined).length;
 
     const styles = {
-        container: { padding: '2rem' },
-        header: { marginBottom: '2rem' },
-        formContainer: { padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', marginBottom: '2rem' },
-        formRow: { display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' },
-        formGroup: { flex: 1, minWidth: '200px' },
-        label: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' },
-        select: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' },
-        successBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginTop: '1rem' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem' },
-        input: { width: '100px', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px' },
-        reportContainer: { marginTop: '2rem', padding: '1rem', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '8px' },
-        error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
-        progressBar: { marginTop: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
+        ...commonStyles,
         zoneGroup: { marginTop: '1.5rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px', fontWeight: 'bold' },
         subTable: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginBottom: '1rem' },
+        input: { width: '100px', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px' },
+        progressBar: { marginTop: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
+        reportContainer: { marginTop: '2rem', padding: '1rem', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '8px' },
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1>Инвентаризация оборудования</h1>
+                <h1 style={styles.title}>Инвентаризация оборудования</h1>
             </div>
 
             {error && <div style={styles.error}>{error}</div>}
@@ -245,7 +219,6 @@ const InventarizationPage = () => {
 
                     <h3>Пошаговая сверка</h3>
                     
-                    {/* Режим "по зоне" - обычная таблица */}
                     {!isAllMode && (
                         <table style={styles.table}>
                             <thead>
@@ -287,7 +260,6 @@ const InventarizationPage = () => {
                         </table>
                     )}
 
-                    {/* Режим "все зоны" - группировка по зонам */}
                     {isAllMode && groupedInventarizations.map((group) => (
                         <div key={group.zoneId}>
                             <div style={styles.zoneGroup}>

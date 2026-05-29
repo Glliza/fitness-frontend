@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { maintenanceService } from '../services/maintenanceService';
 import { equipmentService } from '../services/equipmentService';
+import { commonStyles } from '../styles/globalStyles';
 
 const TORepairPages = () => {
     const [toRepairs, setToRepairs] = useState([]);
@@ -12,6 +13,18 @@ const TORepairPages = () => {
     const [activeTab, setActiveTab] = useState('to');
     const [showForm, setShowForm] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
+    
+    // Пагинация для ТО
+    const [toPage, setToPage] = useState(0);
+    const [toTotalPages, setToTotalPages] = useState(0);
+    const [toTotalElements, setToTotalElements] = useState(0);
+    const [toPageSize] = useState(10);
+    
+    // Пагинация для заявок
+    const [reqPage, setReqPage] = useState(0);
+    const [reqTotalPages, setReqTotalPages] = useState(0);
+    const [reqTotalElements, setReqTotalElements] = useState(0);
+    const [reqPageSize] = useState(10);
     
     const [formData, setFormData] = useState({
         equipmentId: '',
@@ -29,15 +42,46 @@ const TORepairPages = () => {
 
     const statusOptions = ['Открыта', 'В работе', 'Выполнена'];
 
-    const loadData = async () => {
+    // Загрузка оборудования для выпадающих списков
+    const loadEquipment = async () => {
         try {
-            setLoading(true);
-            const [equipmentRes] = await Promise.all([
-                equipmentService.getAll(),
-            ]);
-            setEquipment(equipmentRes.data);
-            await loadToRepairs();
-            await loadRequests();
+            const response = await equipmentService.getAll(0, 100);
+            setEquipment(response.data.content || []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const loadToRepairs = useCallback(async (page = toPage) => {
+        try {
+            const response = await maintenanceService.getAllTO(page, toPageSize, 'plannedDate', 'desc');
+            setToRepairs(response.data.content);
+            setToTotalPages(response.data.totalPages);
+            setToTotalElements(response.data.totalElements);
+            setToPage(response.data.number);
+        } catch (err) {
+            console.error(err);
+        }
+    }, [toPageSize]);
+
+    const loadRequests = useCallback(async (page = reqPage) => {
+        try {
+            const response = await maintenanceService.getAllRequests(page, reqPageSize, 'createdAt', 'desc');
+            setRequests(response.data.content);
+            setReqTotalPages(response.data.totalPages);
+            setReqTotalElements(response.data.totalElements);
+            setReqPage(response.data.number);
+        } catch (err) {
+            console.error(err);
+        }
+    }, [reqPageSize]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            await loadEquipment();
+            await loadToRepairs(0);
+            await loadRequests(0);
             setError('');
             setSuccess('');
         } catch (err) {
@@ -47,29 +91,23 @@ const TORepairPages = () => {
         }
     };
 
-    const loadToRepairs = async () => {
-        try {
-            const response = await maintenanceService.getAllTO();
-            console.log('Загружены ТО:', response.data);
-            setToRepairs(response.data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const loadRequests = async () => {
-        try {
-            const response = await maintenanceService.getAllRequests();
-            console.log('Загружены заявки:', response.data);
-            setRequests(response.data);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
     useEffect(() => {
         loadData();
     }, []);
+
+    // При изменении страницы ТО
+    useEffect(() => {
+        if (activeTab === 'to') {
+            loadToRepairs(toPage);
+        }
+    }, [toPage, activeTab, loadToRepairs]);
+
+    // При изменении страницы заявок
+    useEffect(() => {
+        if (activeTab === 'requests') {
+            loadRequests(reqPage);
+        }
+    }, [reqPage, activeTab, loadRequests]);
 
     const handleCreateTO = async (e) => {
         e.preventDefault();
@@ -85,16 +123,15 @@ const TORepairPages = () => {
                 description: formData.description || '',
                 worker: formData.worker || ''
             };
-            console.log('Отправка ТО:', dataToSend);
             await maintenanceService.createTO(dataToSend);
             setShowForm(false);
             setFormData({ equipmentId: '', type: '', plannedDate: '', description: '', worker: '' });
-            await loadToRepairs();
+            await loadToRepairs(0);
+            setToPage(0);
             setSuccess('Плановое ТО успешно создано');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            console.error('Ошибка:', err);
-            setError('Ошибка создания ТО');
+            setError(err.response?.data?.message || 'Ошибка создания ТО');
         }
     };
 
@@ -111,20 +148,18 @@ const TORepairPages = () => {
                 description: repairForm.description || '',
                 tORepairId: null
             };
-            console.log('Отправка заявки:', dataToSend);
             await maintenanceService.createRepair(dataToSend);
             setShowForm(false);
             setRepairForm({ equipmentInventoryNumber: '', creator: '', description: '' });
-            await loadRequests();
-            // Обновляем статус оборудования на "Сломано"
+            await loadRequests(0);
+            setReqPage(0);
             if (repairForm.equipmentInventoryNumber) {
                 await equipmentService.changeStatus(repairForm.equipmentInventoryNumber, 'Сломано');
             }
             setSuccess('Заявка на ремонт успешно создана');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            console.error('Ошибка:', err);
-            setError('Ошибка создания заявки');
+            setError(err.response?.data?.message || 'Ошибка создания заявки');
         }
     };
 
@@ -132,8 +167,7 @@ const TORepairPages = () => {
         setUpdatingId(toId);
         try {
             await maintenanceService.completeTO(toId);
-            await loadToRepairs();
-            // Получаем следующую дату ТО
+            await loadToRepairs(toPage);
             const nextDateRes = await maintenanceService.getNextTODate(equipmentId);
             setSuccess(`ТО завершено. Следующее ТО запланировано на ${nextDateRes.data}`);
             setTimeout(() => setSuccess(''), 5000);
@@ -148,7 +182,7 @@ const TORepairPages = () => {
         setUpdatingId(requestId);
         try {
             await maintenanceService.updateRequestStatus(requestId, newStatus, 'Система');
-            await loadRequests();
+            await loadRequests(reqPage);
             setSuccess(`Статус заявки изменён на "${newStatus}"`);
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
@@ -173,23 +207,78 @@ const TORepairPages = () => {
         }
     };
 
+    const renderTOPagination = () => {
+        if (toTotalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, toPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(toTotalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div style={commonStyles.pagination}>
+                <button style={commonStyles.pageButton} onClick={() => setToPage(0)} disabled={toPage === 0}>⏮ Первая</button>
+                <button style={commonStyles.pageButton} onClick={() => setToPage(toPage - 1)} disabled={toPage === 0}>◀ Назад</button>
+                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                {pages.map(p => (
+                    <button key={p} style={p === toPage ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => setToPage(p)}>
+                        {p + 1}
+                    </button>
+                ))}
+                {endPage < toTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
+                <button style={commonStyles.pageButton} onClick={() => setToPage(toPage + 1)} disabled={toPage === toTotalPages - 1}>Вперед ▶</button>
+                <button style={commonStyles.pageButton} onClick={() => setToPage(toTotalPages - 1)} disabled={toPage === toTotalPages - 1}>Последняя ⏩</button>
+                <span style={commonStyles.pageInfo}>Страница {toPage + 1} из {toTotalPages} (всего {toTotalElements})</span>
+            </div>
+        );
+    };
+
+    const renderReqPagination = () => {
+        if (reqTotalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, reqPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(reqTotalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div style={commonStyles.pagination}>
+                <button style={commonStyles.pageButton} onClick={() => setReqPage(0)} disabled={reqPage === 0}>⏮ Первая</button>
+                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqPage - 1)} disabled={reqPage === 0}>◀ Назад</button>
+                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                {pages.map(p => (
+                    <button key={p} style={p === reqPage ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => setReqPage(p)}>
+                        {p + 1}
+                    </button>
+                ))}
+                {endPage < reqTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
+                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqPage + 1)} disabled={reqPage === reqTotalPages - 1}>Вперед ▶</button>
+                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqTotalPages - 1)} disabled={reqPage === reqTotalPages - 1}>Последняя ⏩</button>
+                <span style={commonStyles.pageInfo}>Страница {reqPage + 1} из {reqTotalPages} (всего {reqTotalElements})</span>
+            </div>
+        );
+    };
+
     const styles = {
-        container: { padding: '2rem' },
-        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
-        tabs: { display: 'flex', gap: '1rem' },
-        tab: { padding: '0.5rem 1rem', backgroundColor: '#e9ecef', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-        activeTab: { backgroundColor: '#007bff', color: 'white' },
-        button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
+        ...commonStyles,
         completeBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' },
-        formContainer: { marginTop: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', marginBottom: '2rem' },
-        formRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap' },
-        formGroup: { flex: 1, minWidth: '200px' },
-        label: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' },
-        input: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        select: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginTop: '1rem' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem' },
+        statusSelect: { padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', minWidth: '120px', fontSize: '0.875rem' },
         statusBadge: (status) => ({
             display: 'inline-block',
             padding: '0.25rem 0.5rem',
@@ -198,27 +287,17 @@ const TORepairPages = () => {
             backgroundColor: getStatusColor(status),
             color: 'white',
         }),
-        statusSelect: { 
-            padding: '0.25rem 0.5rem', 
-            borderRadius: '4px', 
-            border: '1px solid #ccc', 
-            cursor: 'pointer',
-            minWidth: '120px',
-            fontSize: '0.875rem'
-        },
-        error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
-        success: { backgroundColor: '#d4edda', color: '#155724', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1>Техническое обслуживание и ремонты</h1>
-                <div style={styles.tabs}>
-                    <button style={{...styles.tab, ...(activeTab === 'to' ? styles.activeTab : {})}} onClick={() => setActiveTab('to')}>
+                <h1 style={styles.title}>Техническое обслуживание и ремонты</h1>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button style={{...styles.button, ...(activeTab === 'to' ? { backgroundColor: '#0056b3' } : {})}} onClick={() => setActiveTab('to')}>
                         Плановое ТО
                     </button>
-                    <button style={{...styles.tab, ...(activeTab === 'requests' ? styles.activeTab : {})}} onClick={() => setActiveTab('requests')}>
+                    <button style={{...styles.button, ...(activeTab === 'requests' ? { backgroundColor: '#0056b3' } : {})}} onClick={() => setActiveTab('requests')}>
                         Заявки на ремонт
                     </button>
                     <button style={styles.button} onClick={() => setShowForm(!showForm)}>
@@ -238,58 +317,28 @@ const TORepairPages = () => {
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Оборудование *</label>
-                                <select 
-                                    style={styles.select} 
-                                    value={formData.equipmentId} 
-                                    onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} 
-                                    required
-                                >
+                                <select style={styles.select} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Тип ТО *</label>
-                                <input 
-                                    type="text" 
-                                    style={styles.input} 
-                                    placeholder="Например: Смазка, Диагностика"
-                                    value={formData.type} 
-                                    onChange={(e) => setFormData({...formData, type: e.target.value})} 
-                                    required 
-                                />
+                                <input type="text" style={styles.input} placeholder="Например: Смазка" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} required />
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Плановая дата *</label>
-                                <input 
-                                    type="date" 
-                                    style={styles.input} 
-                                    value={formData.plannedDate} 
-                                    onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} 
-                                    required 
-                                />
+                                <input type="date" style={styles.input} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
                             </div>
                         </div>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Описание</label>
-                                <input 
-                                    type="text" 
-                                    style={styles.input} 
-                                    placeholder="Дополнительная информация"
-                                    value={formData.description} 
-                                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
-                                />
+                                <input type="text" style={styles.input} placeholder="Дополнительная информация" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Ответственный работник</label>
-                                <input 
-                                    type="text" 
-                                    style={styles.input} 
-                                    placeholder="ФИО"
-                                    value={formData.worker} 
-                                    onChange={(e) => setFormData({...formData, worker: e.target.value})} 
-                                />
+                                <input type="text" style={styles.input} placeholder="ФИО" value={formData.worker} onChange={(e) => setFormData({...formData, worker: e.target.value})} />
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Сохранить</button>
@@ -305,36 +354,18 @@ const TORepairPages = () => {
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Оборудование *</label>
-                                <select 
-                                    style={styles.select} 
-                                    value={repairForm.equipmentInventoryNumber} 
-                                    onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} 
-                                    required
-                                >
+                                <select style={styles.select} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Кто зафиксировал поломку *</label>
-                                <input 
-                                    type="text" 
-                                    style={styles.input} 
-                                    placeholder="ФИО сотрудника или клиента"
-                                    value={repairForm.creator} 
-                                    onChange={(e) => setRepairForm({...repairForm, creator: e.target.value})} 
-                                    required 
-                                />
+                                <label style={styles.label}>Кто зафиксировал *</label>
+                                <input type="text" style={styles.input} placeholder="ФИО сотрудника или клиента" value={repairForm.creator} onChange={(e) => setRepairForm({...repairForm, creator: e.target.value})} required />
                             </div>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Описание поломки</label>
-                                <input 
-                                    type="text" 
-                                    style={styles.input} 
-                                    placeholder="Описание проблемы"
-                                    value={repairForm.description} 
-                                    onChange={(e) => setRepairForm({...repairForm, description: e.target.value})} 
-                                />
+                                <label style={styles.label}>Описание</label>
+                                <input type="text" style={styles.input} placeholder="Описание проблемы" value={repairForm.description} onChange={(e) => setRepairForm({...repairForm, description: e.target.value})} />
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Создать заявку</button>
@@ -347,48 +378,39 @@ const TORepairPages = () => {
                 <>
                     <h3>Плановое техническое обслуживание</h3>
                     {loading ? <p>Загрузка...</p> : (
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th style={styles.th}>ID</th>
-                                    <th style={styles.th}>Оборудование</th>
-                                    <th style={styles.th}>Тип ТО</th>
-                                    <th style={styles.th}>Плановая дата</th>
-                                    <th style={styles.th}>Описание</th>
-                                    <th style={styles.th}>Работник</th>
-                                    <th style={styles.th}>Статус</th>
-                                    <th style={styles.th}>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {toRepairs.map(to => (
-                                    <tr key={to.id}>
-                                        <td style={styles.td}>{to.id}</td>
-                                        <td style={styles.td}>{getEquipmentName(to.equipmentId)}</td>
-                                        <td style={styles.td}>{to.type}</td>
-                                        <td style={styles.td}>{to.plannedDate}</td>
-                                        <td style={styles.td}>{to.description || '-'}</td>
-                                        <td style={styles.td}>{to.worker || '-'}</td>
-                                        <td style={styles.td}>
-                                            <span style={styles.statusBadge(to.status || 'Запланировано')}>
-                                                {to.status || 'Запланировано'}
-                                            </span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            {(to.status === 'Запланировано' || !to.status) && (
-                                                <button 
-                                                    style={styles.completeBtn} 
-                                                    onClick={() => handleCompleteTO(to.id, to.equipmentId)}
-                                                    disabled={updatingId === to.id}
-                                                >
-                                                    {updatingId === to.id ? '...' : 'Выполнить'}
-                                                </button>
-                                            )}
-                                        </td>
+                        <>
+                            <table style={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th style={styles.th}>ID</th>
+                                        <th style={styles.th}>Оборудование</th>
+                                        <th style={styles.th}>Тип ТО</th>
+                                        <th style={styles.th}>Плановая дата</th>
+                                        <th style={styles.th}>Статус</th>
+                                        <th style={styles.th}>Действия</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {toRepairs.map(to => (
+                                        <tr key={to.id}>
+                                            <td style={styles.td}>{to.id}</td>
+                                            <td style={styles.td}>{getEquipmentName(to.equipmentId)}</td>
+                                            <td style={styles.td}>{to.type}</td>
+                                            <td style={styles.td}>{to.plannedDate}</td>
+                                            <td style={styles.td}><span style={styles.statusBadge(to.status || 'Запланировано')}>{to.status || 'Запланировано'}</span></td>
+                                            <td style={styles.td}>
+                                                {(to.status === 'Запланировано' || !to.status) && (
+                                                    <button style={styles.completeBtn} onClick={() => handleCompleteTO(to.id, to.equipmentId)} disabled={updatingId === to.id}>
+                                                        {updatingId === to.id ? '...' : 'Выполнить'}
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {renderTOPagination()}
+                        </>
                     )}
                 </>
             )}
@@ -398,46 +420,40 @@ const TORepairPages = () => {
                 <>
                     <h3>Заявки на ремонт</h3>
                     {loading ? <p>Загрузка...</p> : (
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th style={styles.th}>ID</th>
-                                    <th style={styles.th}>Оборудование</th>
-                                    <th style={styles.th}>Кто зафиксировал</th>
-                                    <th style={styles.th}>Описание</th>
-                                    <th style={styles.th}>Дата и время</th>
-                                    <th style={styles.th}>Статус</th>
-                                    <th style={styles.th}>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {requests.map(req => (
-                                    <tr key={req.id}>
-                                        <td style={styles.td}>{req.id}</td>
-                                        <td style={styles.td}>{getEquipmentName(req.equipmentInventoryNumber)}</td>
-                                        <td style={styles.td}>{req.creator || '-'}</td>
-                                        <td style={styles.td}>{req.description || '-'}</td>
-                                        <td style={styles.td}>{req.created_at ? new Date(req.created_at).toLocaleString() : '-'}</td>
-                                        <td style={styles.td}>
-                                            <span style={styles.statusBadge(req.status)}>{req.status}</span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            <select
-                                                style={styles.statusSelect}
-                                                value={req.status}
-                                                onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)}
-                                                disabled={updatingId === req.id}
-                                            >
-                                                {statusOptions.map(opt => (
-                                                    <option key={opt} value={opt}>{opt}</option>
-                                                ))}
-                                            </select>
-                                            {updatingId === req.id && <span> ⏳</span>}
-                                        </td>
+                        <>
+                            <table style={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th style={styles.th}>ID</th>
+                                        <th style={styles.th}>Оборудование</th>
+                                        <th style={styles.th}>Кто зафиксировал</th>
+                                        <th style={styles.th}>Описание</th>
+                                        <th style={styles.th}>Дата</th>
+                                        <th style={styles.th}>Статус</th>
+                                        <th style={styles.th}>Действия</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {requests.map(req => (
+                                        <tr key={req.id}>
+                                            <td style={styles.td}>{req.id}</td>
+                                            <td style={styles.td}>{getEquipmentName(req.equipmentInventoryNumber)}</td>
+                                            <td style={styles.td}>{req.creator || '-'}</td>
+                                            <td style={styles.td}>{req.description || '-'}</td>
+                                            <td style={styles.td}>{req.created_at ? new Date(req.created_at).toLocaleDateString() : '-'}</td>
+                                            <td style={styles.td}><span style={styles.statusBadge(req.status)}>{req.status}</span></td>
+                                            <td style={styles.td}>
+                                                <select style={styles.statusSelect} value={req.status} onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)} disabled={updatingId === req.id}>
+                                                    {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                </select>
+                                                {updatingId === req.id && <span> ⏳</span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {renderReqPagination()}
+                        </>
                     )}
                 </>
             )}

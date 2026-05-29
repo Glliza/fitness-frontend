@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { equipmentService } from '../services/equipmentService';
 import { zoneService } from '../services/zoneService';
+import { commonStyles } from '../styles/globalStyles';
 
 const EquipmentPage = () => {
     const [equipment, setEquipment] = useState([]);
-    const [filteredEquipment, setFilteredEquipment] = useState([]);
     const [zones, setZones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -16,6 +16,12 @@ const EquipmentPage = () => {
     const [filterZone, setFilterZone] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     
+    // Пагинация
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [pageSize] = useState(10);
+    
     const [formData, setFormData] = useState({
         zoneId: '',
         name: '',
@@ -23,23 +29,30 @@ const EquipmentPage = () => {
         dataBuy: '',
     });
 
-    const loadZones = async () => {
+    // Загрузка всех зон (без пагинации для фильтра)
+    const loadAllZones = async () => {
         try {
-            const response = await zoneService.getAll();
-            setZones(response.data);
+            const response = await zoneService.getAll(0, 100);
+            setZones(response.data.content || []);
         } catch (err) {
             console.error('Ошибка загрузки зон:', err);
         }
     };
 
-    const loadEquipment = async () => {
+    // Функция загрузки оборудования с текущими фильтрами
+    const loadEquipment = useCallback(async (currentPage = 0, zone = filterZone, status = filterStatus) => {
         try {
             setLoading(true);
-            const response = await equipmentService.getAll();
-            console.log('=== ДАННЫЕ С СЕРВЕРА ===');
-            console.log('Оборудование:', response.data);
-            setEquipment(response.data);
-            setFilteredEquipment(response.data);
+            console.log('Загрузка с фильтрами:', { zone, status, page: currentPage });
+            const response = await equipmentService.getAll(
+                currentPage, pageSize, 'id', 'asc',
+                zone || null,
+                status || null
+            );
+            setEquipment(response.data.content);
+            setTotalPages(response.data.totalPages);
+            setTotalElements(response.data.totalElements);
+            setPage(response.data.number);
             setError('');
         } catch (err) {
             setError('Ошибка загрузки оборудования');
@@ -47,38 +60,29 @@ const EquipmentPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filterZone, filterStatus, pageSize]);
 
-    // Функция фильтрации
+    // При изменении фильтров или страницы - загружаем данные
+    useEffect(() => {
+        loadEquipment(page, filterZone, filterStatus);
+    }, [page, filterZone, filterStatus, loadEquipment]);
+
+    // Применение фильтров (сброс на первую страницу)
     const applyFilters = () => {
-        let filtered = [...equipment];
-        
-        if (filterZone) {
-            filtered = filtered.filter(item => item.zoneId === parseInt(filterZone));
-        }
-        
-        if (filterStatus) {
-            filtered = filtered.filter(item => item.status === filterStatus);
-        }
-        
-        setFilteredEquipment(filtered);
+        setPage(0);
+        // loadEquipment вызовется через useEffect
     };
 
     // Сброс фильтров
     const resetFilters = () => {
         setFilterZone('');
         setFilterStatus('');
-        setFilteredEquipment(equipment);
+        setPage(0);
     };
 
     useEffect(() => {
-        loadZones();
-        loadEquipment();
+        loadAllZones();
     }, []);
-
-    useEffect(() => {
-        applyFilters();
-    }, [filterZone, filterStatus, equipment]);
 
     const resetForm = () => {
         setFormData({
@@ -106,9 +110,6 @@ const EquipmentPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        console.log('=== ОТПРАВКА ДАННЫХ ===');
-        console.log('formData:', formData);
     
         if (!formData.zoneId) {
             setError('Выберите зону');
@@ -137,7 +138,8 @@ const EquipmentPage = () => {
                 await equipmentService.create(dataToSend);
             }
             resetForm();
-            loadEquipment();
+            // Перезагружаем текущую страницу с фильтрами
+            loadEquipment(page, filterZone, filterStatus);
         } catch (err) {
             setError(isEditing ? 'Ошибка обновления оборудования' : 'Ошибка создания оборудования');
             console.error(err);
@@ -148,60 +150,125 @@ const EquipmentPage = () => {
         if (window.confirm('Удалить оборудование?')) {
             try {
                 await equipmentService.delete(id);
-                loadEquipment();
+                loadEquipment(page, filterZone, filterStatus);
             } catch (err) {
                 setError(err.response?.data?.message || 'Ошибка удаления');
             }
         }
     };
 
-    // Функция для получения названия зоны по ID
     const getZoneName = (zoneId) => {
         if (!zoneId) return 'Не указана';
         const zone = zones.find(z => z.id === zoneId);
         return zone ? zone.name : 'Неизвестная зона';
     };
 
+    const handlePageChange = (newPage) => {
+        if (newPage >= 0 && newPage < totalPages) {
+            setPage(newPage);
+        }
+    };
+
+    const renderPagination = () => {
+        if (totalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, page - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div style={commonStyles.pagination}>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => handlePageChange(0)}
+                    disabled={page === 0}
+                >
+                    ⏮ Первая
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 0}
+                >
+                    ◀ Назад
+                </button>
+                
+                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                {pages.map(p => (
+                    <button
+                        key={p}
+                        style={p === page ? commonStyles.activePageButton : commonStyles.pageButton}
+                        onClick={() => handlePageChange(p)}
+                    >
+                        {p + 1}
+                    </button>
+                ))}
+                
+                {endPage < totalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages - 1}
+                >
+                    Вперед ▶
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => handlePageChange(totalPages - 1)}
+                    disabled={page === totalPages - 1}
+                >
+                    Последняя ⏩
+                </button>
+                
+                <span style={commonStyles.pageInfo}>
+                    Страница {page + 1} из {totalPages} (всего {totalElements} записей)
+                </span>
+            </div>
+        );
+    };
+
+    // Объединяем стили
     const styles = {
-        container: { padding: '2rem' },
-        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
-        filterContainer: { display: 'flex', gap: '1rem', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px' },
+        ...commonStyles,
+        filterContainer: {
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'flex-end',
+            marginBottom: '1.5rem',
+            flexWrap: 'wrap',
+            padding: '1rem',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+        },
         filterGroup: { flex: 1, minWidth: '150px' },
         filterLabel: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
         filterSelect: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
         resetBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', height: '38px' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem' },
-        button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        editBtn: { backgroundColor: '#ffc107', color: 'black', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' },
-        deleteBtn: { backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' },
-        cancelBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', marginLeft: '0.5rem' },
-        formContainer: { marginTop: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white' },
-        formRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap' },
-        formGroup: { flex: 1, minWidth: '200px' },
-        label: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' },
-        input: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' },
-        select: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', boxSizing: 'border-box' },
-        error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
         statusBadge: (status) => ({
             display: 'inline-block',
             padding: '0.25rem 0.5rem',
             borderRadius: '4px',
             fontSize: '0.875rem',
             backgroundColor: status === 'Списано' ? '#dc3545' : status === 'На ремонте' ? '#ffc107' : status === 'Сломано' ? '#fd7e14' : '#28a745',
-            color: status === 'Списано' || status === 'На ремонте' || status === 'Сломано' ? 'white' : 'white',
+            color: 'white',
         }),
-        countInfo: { marginTop: '1rem', fontSize: '0.875rem', color: '#6c757d' },
     };
-
-    // Уникальные статусы для фильтра
-    const uniqueStatuses = [...new Set(equipment.map(item => item.status))];
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1>Управление оборудованием</h1>
+                <h1 style={styles.title}>Управление оборудованием</h1>
                 {!showForm && (
                     <button style={styles.button} onClick={() => setShowForm(true)}>
                         + Добавить оборудование
@@ -218,7 +285,10 @@ const EquipmentPage = () => {
                     <select
                         style={styles.filterSelect}
                         value={filterZone}
-                        onChange={(e) => setFilterZone(e.target.value)}
+                        onChange={(e) => {
+                            setFilterZone(e.target.value);
+                            setPage(0);
+                        }}
                     >
                         <option value="">Все зоны</option>
                         {zones.map(zone => (
@@ -231,12 +301,17 @@ const EquipmentPage = () => {
                     <select
                         style={styles.filterSelect}
                         value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
+                        onChange={(e) => {
+                            setFilterStatus(e.target.value);
+                            setPage(0);
+                        }}
                     >
                         <option value="">Все статусы</option>
-                        {uniqueStatuses.map(status => (
-                            <option key={status} value={status}>{status}</option>
-                        ))}
+                        <option value="Новое">Новое</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Сломано">Сломано</option>
+                        <option value="На ремонте">На ремонте</option>
+                        <option value="Списано">Списано</option>
                     </select>
                 </div>
                 <div>
@@ -331,7 +406,7 @@ const EquipmentPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredEquipment.map((item) => (
+                            {equipment.map((item) => (
                                 <tr key={item.id}>
                                     <td style={styles.td}>{item.id}</td>
                                     <td style={styles.td}>{item.name}</td>
@@ -352,8 +427,11 @@ const EquipmentPage = () => {
                             ))}
                         </tbody>
                     </table>
+                    
+                    {renderPagination()}
+                    
                     <div style={styles.countInfo}>
-                        Показано: {filteredEquipment.length} из {equipment.length} единиц оборудования
+                        Всего: {totalElements} единиц оборудования
                     </div>
                 </>
             )}

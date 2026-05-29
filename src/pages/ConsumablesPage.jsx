@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { consumablesService } from '../services/consumablesService';
 import { zoneService } from '../services/zoneService';
+import { commonStyles } from '../styles/globalStyles';
 
 const ConsumablesPage = () => {
     const [consumables, setConsumables] = useState([]);
@@ -12,17 +13,36 @@ const ConsumablesPage = () => {
     const [selectedZone, setSelectedZone] = useState('');
     const [amount, setAmount] = useState('');
     const [transactionType, setTransactionType] = useState('income');
+    
+    // Пагинация для расходников
+    const [consumablesPage, setConsumablesPage] = useState(0);
+    const [consumablesTotalPages, setConsumablesTotalPages] = useState(0);
+    const [consumablesTotalElements, setConsumablesTotalElements] = useState(0);
+    const [consumablesPageSize] = useState(10);
+    
+    // Пагинация для зон
+    const [zonesPage, setZonesPage] = useState(0);
+    const [zonesTotalPages, setZonesTotalPages] = useState(0);
+    const [zonesTotalElements, setZonesTotalElements] = useState(0);
+    const [zonesPageSize] = useState(10);
 
     const loadData = async () => {
         try {
             setLoading(true);
             const [consumablesRes, zonesRes] = await Promise.all([
-                consumablesService.getAll(),
-                zoneService.getAll()
+                consumablesService.getAll(consumablesPage, consumablesPageSize),
+                zoneService.getAll(zonesPage, zonesPageSize)
             ]);
-            setConsumables(consumablesRes.data);
-            setZones(zonesRes.data);
-            await loadBalances(consumablesRes.data, zonesRes.data);
+            
+            setConsumables(consumablesRes.data.content);
+            setConsumablesTotalPages(consumablesRes.data.totalPages);
+            setConsumablesTotalElements(consumablesRes.data.totalElements);
+            
+            setZones(zonesRes.data.content);
+            setZonesTotalPages(zonesRes.data.totalPages);
+            setZonesTotalElements(zonesRes.data.totalElements);
+            
+            await loadBalances(consumablesRes.data.content, zonesRes.data.content);
             setError('');
         } catch (err) {
             setError('Ошибка загрузки данных');
@@ -49,7 +69,7 @@ const ConsumablesPage = () => {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [consumablesPage, zonesPage]);
 
     const handleTransaction = async (e) => {
         e.preventDefault();
@@ -105,30 +125,160 @@ const ConsumablesPage = () => {
         return balances[`${consumableId}_${zoneId}`] || 0;
     };
 
+    const renderConsumablesPagination = () => {
+        if (consumablesTotalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, consumablesPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(consumablesTotalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div style={commonStyles.pagination}>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setConsumablesPage(0)}
+                    disabled={consumablesPage === 0}
+                >
+                    ⏮ Первая
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setConsumablesPage(consumablesPage - 1)}
+                    disabled={consumablesPage === 0}
+                >
+                    ◀ Назад
+                </button>
+                
+                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                {pages.map(p => (
+                    <button
+                        key={p}
+                        style={p === consumablesPage ? commonStyles.activePageButton : commonStyles.pageButton}
+                        onClick={() => setConsumablesPage(p)}
+                    >
+                        {p + 1}
+                    </button>
+                ))}
+                
+                {endPage < consumablesTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setConsumablesPage(consumablesPage + 1)}
+                    disabled={consumablesPage === consumablesTotalPages - 1}
+                >
+                    Вперед ▶
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setConsumablesPage(consumablesTotalPages - 1)}
+                    disabled={consumablesPage === consumablesTotalPages - 1}
+                >
+                    Последняя ⏩
+                </button>
+                
+                <span style={commonStyles.pageInfo}>
+                    Расходники: стр. {consumablesPage + 1} из {consumablesTotalPages} (всего {consumablesTotalElements})
+                </span>
+            </div>
+        );
+    };
+
+    const renderZonesPagination = () => {
+        if (zonesTotalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, zonesPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(zonesTotalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div style={commonStyles.pagination}>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setZonesPage(0)}
+                    disabled={zonesPage === 0}
+                >
+                    ⏮ Первая
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setZonesPage(zonesPage - 1)}
+                    disabled={zonesPage === 0}
+                >
+                    ◀ Назад
+                </button>
+                
+                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                {pages.map(p => (
+                    <button
+                        key={p}
+                        style={p === zonesPage ? commonStyles.activePageButton : commonStyles.pageButton}
+                        onClick={() => setZonesPage(p)}
+                    >
+                        {p + 1}
+                    </button>
+                ))}
+                
+                {endPage < zonesTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
+                
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setZonesPage(zonesPage + 1)}
+                    disabled={zonesPage === zonesTotalPages - 1}
+                >
+                    Вперед ▶
+                </button>
+                <button
+                    style={commonStyles.pageButton}
+                    onClick={() => setZonesPage(zonesTotalPages - 1)}
+                    disabled={zonesPage === zonesTotalPages - 1}
+                >
+                    Последняя ⏩
+                </button>
+                
+                <span style={commonStyles.pageInfo}>
+                    Зоны: стр. {zonesPage + 1} из {zonesTotalPages} (всего {zonesTotalElements})
+                </span>
+            </div>
+        );
+    };
+
+    // Объединяем стили
     const styles = {
-        container: { padding: '2rem' },
-        header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
-        formContainer: { padding: '1rem', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white', marginBottom: '2rem' },
-        formRow: { display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' },
-        formGroup: { flex: 1, minWidth: '150px' },
-        label: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' },
-        select: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        input: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        button: { backgroundColor: '#007bff', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        expenseBtn: { backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        exportBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
+        ...commonStyles,
         tableWrapper: { overflowX: 'auto' },
         table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', minWidth: '500px' },
         th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center', backgroundColor: '#f2f2f2' },
         td: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center' },
         firstCol: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2', fontWeight: 'bold' },
-        error: { backgroundColor: '#f8d7da', color: '#721c24', padding: '0.75rem', borderRadius: '4px', marginBottom: '1rem' },
+        expenseBtn: { backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
+        exportBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <h1>Учёт расходных материалов</h1>
+                <h1 style={styles.title}>Учёт расходных материалов</h1>
                 <div>
                     <button style={styles.exportBtn} onClick={() => handleExport('pdf')}>Экспорт PDF</button>
                     <button style={styles.exportBtn} onClick={() => handleExport('excel')}>Экспорт Excel</button>
@@ -199,6 +349,9 @@ const ConsumablesPage = () => {
                 </form>
             </div>
 
+            {/* Пагинация для расходников */}
+            {renderConsumablesPagination()}
+
             {loading ? (
                 <p>Загрузка...</p>
             ) : (
@@ -227,6 +380,9 @@ const ConsumablesPage = () => {
                     </table>
                 </div>
             )}
+            
+            {/* Пагинация для зон */}
+            {renderZonesPagination()}
         </div>
     );
 };

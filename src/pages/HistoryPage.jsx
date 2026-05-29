@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { maintenanceService } from '../services/maintenanceService';
 import { equipmentService } from '../services/equipmentService';
+import { commonStyles } from '../styles/globalStyles';
 
 const HistoryPage = () => {
     const [equipment, setEquipment] = useState([]);
@@ -10,7 +11,7 @@ const HistoryPage = () => {
     
     // Фильтры
     const [filterEquipment, setFilterEquipment] = useState('');
-    const [filterType, setFilterType] = useState('all'); // all, to, repair
+    const [filterType, setFilterType] = useState('all');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     
@@ -20,18 +21,25 @@ const HistoryPage = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [equipmentRes, toRes, requestsRes] = await Promise.all([
-                equipmentService.getAll(),
-                maintenanceService.getAllTO(),
-                maintenanceService.getAllRequests()
+            // Загружаем оборудование (все записи, без пагинации)
+            const equipmentRes = await equipmentService.getAll(0, 100);
+            const equipmentList = equipmentRes.data.content || [];
+            
+            // Загружаем ТО и заявки (без пагинации, все записи)
+            const [toRes, requestsRes] = await Promise.all([
+                maintenanceService.getAllTO(0, 1000),
+                maintenanceService.getAllRequests(0, 1000)
             ]);
             
-            setEquipment(equipmentRes.data);
-            setAllTO(toRes.data);
-            setAllRequests(requestsRes.data);
+            const toList = toRes.data.content || [];
+            const reqList = requestsRes.data.content || [];
+            
+            setEquipment(equipmentList);
+            setAllTO(toList);
+            setAllRequests(reqList);
             
             // Применяем фильтры после загрузки
-            applyFilters(toRes.data, requestsRes.data, equipmentRes.data);
+            applyFilters(toList, reqList, equipmentList);
         } catch (err) {
             console.error('Ошибка загрузки данных:', err);
         } finally {
@@ -137,20 +145,12 @@ const HistoryPage = () => {
     };
 
     const styles = {
-        container: { padding: '2rem' },
-        title: { marginBottom: '1rem' },
+        ...commonStyles,
         filterContainer: { padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '2rem' },
-        formRow: { display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' },
-        formGroup: { flex: 1, minWidth: '150px' },
-        label: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
-        select: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        input: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
+        filterGroup: { flex: 1, minWidth: '150px' },
+        filterLabel: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
+        filterSelect: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
         resetBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', height: '38px' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginTop: '1rem' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem', verticalAlign: 'top' },
-        emptyMessage: { textAlign: 'center', padding: '2rem', color: '#6c757d' },
-        countInfo: { marginTop: '1rem', fontSize: '0.875rem', color: '#6c757d' },
         statusBadge: (status) => ({
             display: 'inline-block',
             padding: '0.25rem 0.5rem',
@@ -170,15 +170,15 @@ const HistoryPage = () => {
 
     return (
         <div style={styles.container}>
-            <h1 style={styles.title}>История ТО и ремонтов</h1>
+            <h1 style={styles.title}>История обслуживания</h1>
             
             {/* Блок фильтров */}
             <div style={styles.filterContainer}>
                 <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Оборудование</label>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Оборудование</label>
                         <select 
-                            style={styles.select} 
+                            style={styles.filterSelect} 
                             value={filterEquipment} 
                             onChange={(e) => setFilterEquipment(e.target.value)}
                         >
@@ -190,10 +190,10 @@ const HistoryPage = () => {
                             ))}
                         </select>
                     </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Тип события</label>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Тип события</label>
                         <select 
-                            style={styles.select} 
+                            style={styles.filterSelect} 
                             value={filterType} 
                             onChange={(e) => setFilterType(e.target.value)}
                         >
@@ -202,8 +202,8 @@ const HistoryPage = () => {
                             <option value="repair">Только ремонты</option>
                         </select>
                     </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Дата от</label>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Дата от</label>
                         <input 
                             type="date" 
                             style={styles.input} 
@@ -211,8 +211,8 @@ const HistoryPage = () => {
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Дата до</label>
+                    <div style={styles.filterGroup}>
+                        <label style={styles.filterLabel}>Дата до</label>
                         <input 
                             type="date" 
                             style={styles.input} 
