@@ -7,7 +7,7 @@ export const maintenanceService = {
     createRepair: (data) => api.post('/maintenance/repairs', data),
     updateRequestStatus: (requestId, status, worker) => 
         api.patch(`/maintenance/repairs/${requestId}/status?status=${status}&worker=${worker}`),
+    completeTO: (toId) => api.patch(`/maintenance/to/${toId}/complete`),
     getHistory: (equipmentId) => api.get(`/maintenance/history/${equipmentId}`),
     getNextTODate: (equipmentId) => api.get(`/maintenance/next-date/${equipmentId}`),
-    completeTO: (toId) => api.patch(`/maintenance/to/${toId}/complete`),
 };

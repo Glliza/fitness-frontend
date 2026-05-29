@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Notifications from './Notifications';
 
 const Menu = () => {
     const { user, logout } = useAuth();
@@ -18,6 +19,7 @@ const Menu = () => {
         backgroundColor: '#343a40',
         color: 'white',
         flexWrap: 'wrap',
+        alignItems: 'center',
     };
 
     const linkStyle = {
@@ -46,6 +48,7 @@ const Menu = () => {
             <Link to="/requestbuy" style={getActiveStyle('/requestbuy')}>Заявки на закупку</Link>
             <Link to="/history" style={getActiveStyle('/history')}>История ТО</Link>
             <div style={{ flex: 1 }}></div>
+            <Notifications />
             <span style={{ padding: '0.5rem 1rem' }}>👤 {user?.fio || user?.login}</span>
             <button onClick={handleLogout} style={{
                 backgroundColor: '#dc3545',
