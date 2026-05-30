@@ -114,6 +114,7 @@ const Notifications = () => {
             top: '45px',
             right: '0',
             width: '420px',
+            maxWidth: 'calc(100vw - 20px)', // Адаптация для мобильных
             maxHeight: '500px',
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -134,6 +135,7 @@ const Notifications = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
+            flexWrap: 'wrap', // Перенос на мобильных
         },
         title: {
             margin: 0,
@@ -181,12 +183,22 @@ const Notifications = () => {
             marginBottom: '5px',
             fontSize: '0.85rem',
             color: '#2c3e50',
+            // Перенос текста для заголовка
+            wordWrap: 'break-word',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            lineHeight: '1.4',
         },
         messageText: {
             fontSize: '0.78rem',
             color: '#6c757d',
             marginBottom: '5px',
-            lineHeight: '1.4',
+            lineHeight: '1.5',
+            // Перенос текста для сообщения
+            wordWrap: 'break-word',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
         },
         timeText: {
             fontSize: '0.65rem',
@@ -273,4 +285,4 @@ const Notifications = () => {
     );
 };
 
-export default Notifications;
+export default Notifications;   

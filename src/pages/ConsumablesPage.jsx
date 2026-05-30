@@ -88,7 +88,12 @@ const ConsumablesPage = () => {
             await loadBalances(consumables, zones);
             setError('');
         } catch (err) {
-            setError(err.response?.data?.message || 'Ошибка операции');
+            // Проверяем статус ошибки 400 и сообщение "No stock found"
+            if (err.response?.status === 400 && err.response?.data?.message === 'No stock found') {
+                setError('Недостаточно материала для списания');
+            } else {
+                setError(err.response?.data?.message || 'Ошибка операции');
+            }
         }
     };
 
@@ -291,20 +296,6 @@ const ConsumablesPage = () => {
                 <form onSubmit={handleTransaction}>
                     <div style={styles.formRow}>
                         <div style={styles.formGroup}>
-                            <label style={styles.label}>Расходный материал</label>
-                            <select
-                                style={styles.select}
-                                value={selectedConsumable}
-                                onChange={(e) => setSelectedConsumable(parseInt(e.target.value))}
-                                required
-                            >
-                                <option value="">Выберите</option>
-                                {consumables.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div style={styles.formGroup}>
                             <label style={styles.label}>Зона</label>
                             <select
                                 style={styles.select}
@@ -318,6 +309,21 @@ const ConsumablesPage = () => {
                                 ))}
                             </select>
                         </div>
+                        <div style={styles.formGroup}>
+                            <label style={styles.label}>Расходный материал</label>
+                            <select
+                                style={styles.select}
+                                value={selectedConsumable}
+                                onChange={(e) => setSelectedConsumable(parseInt(e.target.value))}
+                                required
+                            >
+                                <option value="">Выберите</option>
+                                {consumables.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Количество</label>
                             <input

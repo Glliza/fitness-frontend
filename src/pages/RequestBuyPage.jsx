@@ -18,6 +18,9 @@ const RequestBuyPage = () => {
     const [totalElements, setTotalElements] = useState(0);
     const [pageSize] = useState(10);
     
+    // Добавляем состояние для ошибки валидации
+    const [nameValidationError, setNameValidationError] = useState('');
+    
     const [formData, setFormData] = useState({
         equipmentInventoryNumber: '',
         name: '',
@@ -62,12 +65,45 @@ const RequestBuyPage = () => {
         loadRequests(page);
     }, [page, loadRequests]);
 
+    // Функция валидации имени
+    const validateName = (value) => {
+        if (value.length > 255) {
+            setNameValidationError('Наименование не может превышать 255 символов');
+            return false;
+        } else {
+            setNameValidationError('');
+            return true;
+        }
+    };
+
+    // Обработчик изменения имени с ограничением ввода
+    const handleNameChange = (e) => {
+        let value = e.target.value;
+        
+        // Ограничиваем ввод до 255 символов
+        if (value.length <= 255) {
+            setFormData({...formData, name: value});
+            validateName(value);
+        } else {
+            setNameValidationError('Наименование не может превышать 255 символов');
+            // Можно также вывести сообщение, но не обновлять state
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
+        
+        // Проверяем валидацию перед отправкой
         if (!formData.name || !formData.count) {
             setError('Заполните обязательные поля');
             return;
         }
+        
+        if (formData.name.length > 255) {
+            setError('Наименование не может превышать 255 символов');
+            return;
+        }
+        
         try {
             const dataToSend = {
                 equipmentInventoryNumber: formData.equipmentInventoryNumber ? parseInt(formData.equipmentInventoryNumber) : null,
@@ -77,6 +113,7 @@ const RequestBuyPage = () => {
             await requestBuyService.create(dataToSend);
             setShowForm(false);
             setFormData({ equipmentInventoryNumber: '', name: '', count: 1 });
+            setNameValidationError('');
             await loadRequests(0);
             setPage(0);
             setSuccess('Заявка на закупку успешно создана');
@@ -173,6 +210,25 @@ const RequestBuyPage = () => {
             backgroundColor: getStatusColor(status),
             color: 'white',
         }),
+        validationError: {
+            color: '#dc3545',
+            fontSize: '0.75rem',
+            marginTop: '0.25rem'
+        },
+        inputError: {
+            border: '1px solid #dc3545'
+        },
+        // Добавляем стили для переноса текста в ячейке таблицы
+        tdWithWrap: {
+            padding: '12px',
+            borderBottom: '1px solid #dee2e6',
+            textAlign: 'left',
+            wordWrap: 'break-word',
+            whiteSpace: 'normal',
+            wordBreak: 'break-word',
+            maxWidth: '300px',
+            minWidth: '150px'
+        }
     };
 
     return (
@@ -210,11 +266,23 @@ const RequestBuyPage = () => {
                                 <label style={styles.label}>Наименование для закупки *</label>
                                 <input 
                                     type="text" 
-                                    style={styles.input} 
+                                    style={{
+                                        ...styles.input,
+                                        ...(nameValidationError ? styles.inputError : {})
+                                    }} 
                                     value={formData.name} 
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                                    onChange={handleNameChange} 
+                                    maxLength={255}
                                     required 
                                 />
+                                {nameValidationError && (
+                                    <div style={styles.validationError}>
+                                        ⚠️ {nameValidationError}
+                                    </div>
+                                )}
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {formData.name.length}/255 символов
+                                </div>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Количество *</label>
@@ -238,49 +306,62 @@ const RequestBuyPage = () => {
                 <p>Загрузка...</p>
             ) : (
                 <>
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={styles.th}>ID</th>
-                                <th style={styles.th}>Оборудование</th>
-                                <th style={styles.th}>Наименование</th>
-                                <th style={styles.th}>Количество</th>
-                                <th style={styles.th}>Дата создания</th>
-                                <th style={styles.th}>Статус</th>
-                                <th style={styles.th}>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {requests.map(req => (
-                                <tr key={req.id}>
-                                    <td style={styles.td}>{req.id}</td>
-                                    <td style={styles.td}>
-                                        {req.equipmentInventoryNumber ? getEquipmentName(req.equipmentInventoryNumber) : 'Новое'}
-                                        {req.equipmentInventoryNumber && ` (№${req.equipmentInventoryNumber})`}
-                                    </td>
-                                    <td style={styles.td}>{req.name}</td>
-                                    <td style={styles.td}>{req.count}</td>
-                                    <td style={styles.td}>{req.created_at}</td>
-                                    <td style={styles.td}>
-                                        <span style={styles.statusBadge(req.status)}>{req.status}</span>
-                                    </td>
-                                    <td style={styles.td}>
-                                        <select
-                                            style={styles.statusSelect}
-                                            value={req.status}
-                                            onChange={(e) => handleUpdateStatus(req.id, e.target.value)}
-                                            disabled={updatingId === req.id}
-                                        >
-                                            {statusOptions.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                        </select>
-                                        {updatingId === req.id && <span> ⏳</span>}
-                                    </td>
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>ID</th>
+                                    <th style={styles.th}>Оборудование</th>
+                                    <th style={styles.th}>Наименование</th>
+                                    <th style={styles.th}>Количество</th>
+                                    <th style={styles.th}>Дата создания</th>
+                                    <th style={styles.th}>Статус</th>
+                                    <th style={styles.th}>Действия</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {requests.map(req => (
+                                    <tr key={req.id}>
+                                        <td style={styles.td}>{req.id}</td>
+                                        <td style={styles.td}>
+                                            {req.equipmentInventoryNumber ? getEquipmentName(req.equipmentInventoryNumber) : 'Новое'}
+                                            {req.equipmentInventoryNumber && ` (№${req.equipmentInventoryNumber})`}
+                                        </td>
+                                        {/* Ячейка с переносом текста для названия */}
+                                        <td style={styles.tdWithWrap}>
+                                            <div style={{ 
+                                                maxWidth: '300px', 
+                                                wordWrap: 'break-word', 
+                                                whiteSpace: 'normal',
+                                                wordBreak: 'break-all',
+                                                lineHeight: '1.4'
+                                            }}>
+                                                {req.name}
+                                            </div>
+                                        </td>
+                                        <td style={styles.td}>{req.count}</td>
+                                        <td style={styles.td}>{req.created_at}</td>
+                                        <td style={styles.td}>
+                                            <span style={styles.statusBadge(req.status)}>{req.status}</span>
+                                        </td>
+                                        <td style={styles.td}>
+                                            <select
+                                                style={styles.statusSelect}
+                                                value={req.status}
+                                                onChange={(e) => handleUpdateStatus(req.id, e.target.value)}
+                                                disabled={updatingId === req.id}
+                                            >
+                                                {statusOptions.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                            {updatingId === req.id && <span> ⏳</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                     {renderPagination()}
                 </>
             )}

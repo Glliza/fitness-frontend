@@ -53,6 +53,12 @@ const InventarizationPage = () => {
             const response = await inventarizationService.start(selectedZone);
             setInventarizations(response.data);
             setInProgress(true);
+            
+            // Проверка на пустой список оборудования
+            if (!response.data || response.data.length === 0) {
+                setError('В выбранной зоне нет оборудования для инвентаризации');
+                setInProgress(false);
+            }
         } catch (err) {
             setError('Ошибка начала инвентаризации');
             console.error(err);
@@ -69,6 +75,14 @@ const InventarizationPage = () => {
         try {
             const response = await inventarizationService.startAll();
             console.log('startAll response:', response.data);
+            
+            // Проверка на пустой список оборудования
+            if (!response.data || response.data.length === 0) {
+                setError('Нет оборудования для инвентаризации');
+                setLoading(false);
+                return;
+            }
+            
             setGroupedInventarizations(response.data);
             const allItems = [];
             const newInvIdMap = {};
@@ -88,6 +102,14 @@ const InventarizationPage = () => {
                     });
                 }
             });
+            
+            // Проверка на пустой список после обработки групп
+            if (allItems.length === 0) {
+                setError('Нет оборудования для инвентаризации');
+                setInProgress(false);
+                setLoading(false);
+                return;
+            }
             
             setInventarizations(allItems);
             setInvIdMap(newInvIdMap);
@@ -178,6 +200,31 @@ const InventarizationPage = () => {
         input: { width: '100px', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px' },
         progressBar: { marginTop: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
         reportContainer: { marginTop: '2rem', padding: '1rem', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '8px' },
+        warningBox: {
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffeeba',
+            borderRadius: '8px',
+            padding: '20px',
+            textAlign: 'center',
+            marginTop: '20px'
+        },
+        warningText: {
+            color: '#856404',
+            fontSize: '1rem',
+            marginBottom: '10px'
+        },
+        warningIcon: {
+            fontSize: '3rem',
+            marginBottom: '10px'
+        }
+    };
+
+    // Проверка на наличие оборудования перед отображением таблицы
+    const hasEquipment = () => {
+        if (inProgress && inventarizations.length === 0) {
+            return false;
+        }
+        return true;
     };
 
     return (
@@ -208,6 +255,30 @@ const InventarizationPage = () => {
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {inProgress && inventarizations.length === 0 && (
+                <div style={styles.warningBox}>
+                    <div style={styles.warningIcon}>⚠️</div>
+                    <div style={styles.warningText}>
+                        <strong>Нет оборудования для инвентаризации</strong>
+                    </div>
+                    <div style={styles.warningText}>
+                        {isAllMode 
+                            ? 'В системе не найдено ни одного оборудования. Добавьте оборудование перед началом инвентаризации.'
+                            : 'В выбранной зоне нет оборудования. Выберите другую зону или добавьте оборудование.'}
+                    </div>
+                    <button 
+                        style={styles.button} 
+                        onClick={() => {
+                            setInProgress(false);
+                            setInventarizations([]);
+                            setError('');
+                        }}
+                    >
+                        Назад
+                    </button>
                 </div>
             )}
 
@@ -321,12 +392,31 @@ const InventarizationPage = () => {
                     <h3>Отчёт о расхождениях</h3>
                     <p><strong>Зона:</strong> {report.zoneId ? zones.find(z => z.id === report.zoneId)?.name || report.zoneId : 'Все зоны'}</p>
                     <p><strong>Проверено единиц:</strong> {report.totalScanned}</p>
-                    <p><strong>Дата:</strong> {report.date}</p>
+                    <p><strong>Дата:</strong> {new Date(report.date).toLocaleDateString('ru-RU')}</p>
                     {report.discrepancies && report.discrepancies.length > 0 ? (
                         <>
                             <h4>Расхождения:</h4>
                             <ul>
-                                {report.discrepancies.map((d, i) => <li key={i}>{d}</li>)}
+                                {report.discrepancies.map((d, i) => {
+                                    // Парсим строку типа "Equipment 5: expected 1, actual 5"
+                                    const match = d.match(/(.+?): expected (\d+), actual (\d+)/);
+                                    if (match) {
+                                        let [, equipment, expected, actual] = match;
+                                        equipment = equipment.trim();
+                                        // Заменяем "Equipment" на "Оборудование под инвентарным номером"
+                                        if (equipment.startsWith('Equipment')) {
+                                            const number = equipment.replace('Equipment', '').trim();
+                                            equipment = `Оборудование под инвентарным номером ${number}`;
+                                        }
+                                        return (
+                                            <li key={i}>
+                                                <strong>{equipment}</strong>: ожидалось {expected}, фактически {actual}
+                                            </li>
+                                        );
+                                    }
+                                    // Если не удалось распарсить, выводим как есть
+                                    return <li key={i}>{d}</li>;
+                                })}
                             </ul>
                         </>
                     ) : (
