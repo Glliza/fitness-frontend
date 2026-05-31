@@ -88,11 +88,20 @@ const ConsumablesPage = () => {
             await loadBalances(consumables, zones);
             setError('');
         } catch (err) {
-            // Проверяем статус ошибки 400 и сообщение "No stock found"
-            if (err.response?.status === 400 && err.response?.data?.message === 'No stock found') {
-                setError('Недостаточно материала для списания');
-            } else {
-                setError(err.response?.data?.message || 'Ошибка операции');
+            const errorMessage = err.response?.data?.message || '';
+            
+            // Извлекаем доступное и запрошенное количество из сообщения
+            const match = errorMessage.match(/Available: (\d+), requested: (\d+)/);
+            if (match) {
+                const available = match[1];
+                const requested = match[2];
+                setError(`Недостаточно материала. Доступно: ${available}, запрошено: ${requested}`);
+            }
+            else if (errorMessage === 'No stock found') {
+                setError('В выбранной зоне нет этого материала');
+            }
+            else {
+                setError(errorMessage || 'Ошибка операции');
             }
         }
     };

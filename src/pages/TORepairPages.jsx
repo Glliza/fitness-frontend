@@ -14,13 +14,14 @@ const TORepairPages = () => {
     const [showForm, setShowForm] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     
-    // Пагинация для ТО
+    const [validationErrors, setValidationErrors] = useState({});
+    const [repairValidationErrors, setRepairValidationErrors] = useState({});
+    
     const [toPage, setToPage] = useState(0);
     const [toTotalPages, setToTotalPages] = useState(0);
     const [toTotalElements, setToTotalElements] = useState(0);
     const [toPageSize] = useState(10);
     
-    // Пагинация для заявок
     const [reqPage, setReqPage] = useState(0);
     const [reqTotalPages, setReqTotalPages] = useState(0);
     const [reqTotalElements, setReqTotalElements] = useState(0);
@@ -42,7 +43,6 @@ const TORepairPages = () => {
 
     const statusOptions = ['Открыта', 'В работе', 'Выполнена'];
 
-    // Загрузка оборудования для выпадающих списков
     const loadEquipment = async () => {
         try {
             const response = await equipmentService.getAll(0, 100);
@@ -95,22 +95,42 @@ const TORepairPages = () => {
         loadData();
     }, []);
 
-    // При изменении страницы ТО
     useEffect(() => {
         if (activeTab === 'to') {
             loadToRepairs(toPage);
         }
     }, [toPage, activeTab, loadToRepairs]);
 
-    // При изменении страницы заявок
     useEffect(() => {
         if (activeTab === 'requests') {
             loadRequests(reqPage);
         }
     }, [reqPage, activeTab, loadRequests]);
 
+    const resetForm = () => {
+        setFormData({
+            equipmentId: '',
+            type: '',
+            plannedDate: '',
+            description: '',
+            worker: '',
+        });
+        setValidationErrors({});
+    };
+
+    const resetRepairForm = () => {
+        setRepairForm({
+            equipmentInventoryNumber: '',
+            creator: '',
+            description: '',
+        });
+        setRepairValidationErrors({});
+    };
+
     const handleCreateTO = async (e) => {
         e.preventDefault();
+        setValidationErrors({});
+        
         if (!formData.equipmentId || !formData.type || !formData.plannedDate) {
             setError('Заполните обязательные поля');
             return;
@@ -125,18 +145,25 @@ const TORepairPages = () => {
             };
             await maintenanceService.createTO(dataToSend);
             setShowForm(false);
-            setFormData({ equipmentId: '', type: '', plannedDate: '', description: '', worker: '' });
+            resetForm();
             await loadToRepairs(0);
             setToPage(0);
             setSuccess('Плановое ТО успешно создано');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            setError(err.response?.data?.message || 'Ошибка создания ТО');
+            if (err.response?.status === 400 && err.response?.data?.errors) {
+                setValidationErrors(err.response.data.errors);
+                setError('Пожалуйста, исправьте ошибки в форме');
+            } else {
+                setError(err.response?.data?.message || 'Ошибка создания ТО');
+            }
         }
     };
 
     const handleCreateRepair = async (e) => {
         e.preventDefault();
+        setRepairValidationErrors({});
+        
         if (!repairForm.equipmentInventoryNumber || !repairForm.creator) {
             setError('Заполните обязательные поля');
             return;
@@ -150,7 +177,7 @@ const TORepairPages = () => {
             };
             await maintenanceService.createRepair(dataToSend);
             setShowForm(false);
-            setRepairForm({ equipmentInventoryNumber: '', creator: '', description: '' });
+            resetRepairForm();
             await loadRequests(0);
             setReqPage(0);
             if (repairForm.equipmentInventoryNumber) {
@@ -159,7 +186,12 @@ const TORepairPages = () => {
             setSuccess('Заявка на ремонт успешно создана');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            setError(err.response?.data?.message || 'Ошибка создания заявки');
+            if (err.response?.status === 400 && err.response?.data?.errors) {
+                setRepairValidationErrors(err.response.data.errors);
+                setError('Пожалуйста, исправьте ошибки в форме');
+            } else {
+                setError(err.response?.data?.message || 'Ошибка создания заявки');
+            }
         }
     };
 
@@ -206,6 +238,22 @@ const TORepairPages = () => {
             default: return '#6c757d';
         }
     };
+
+    const getInputStyle = (fieldName) => ({
+        ...styles.input,
+        borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
+    });
+
+    const getRepairInputStyle = (fieldName) => ({
+        ...styles.input,
+        borderColor: repairValidationErrors[fieldName] ? '#dc3545' : '#ccc',
+    });
+
+    const getErrorStyle = () => ({
+        color: '#dc3545',
+        fontSize: '0.75rem',
+        marginTop: '0.25rem',
+    });
 
     const renderTOPagination = () => {
         if (toTotalPages <= 1) return null;
@@ -309,7 +357,6 @@ const TORepairPages = () => {
             {error && <div style={styles.error}>{error}</div>}
             {success && <div style={styles.success}>{success}</div>}
 
-            {/* Форма создания планового ТО */}
             {showForm && activeTab === 'to' && (
                 <div style={styles.formContainer}>
                     <h3>Новое плановое ТО</h3>
@@ -317,28 +364,72 @@ const TORepairPages = () => {
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Оборудование *</label>
-                                <select style={styles.select} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} required>
+                                <select style={getInputStyle('equipmentId')} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
+                                {validationErrors.equipmentId && <div style={getErrorStyle()}>{validationErrors.equipmentId}</div>}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Тип ТО *</label>
-                                <input type="text" style={styles.input} placeholder="Например: Смазка" value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} required />
+                                <input 
+                                    type="text" 
+                                    placeholder="Например: Смазка (не более 50 символов)"
+                                    style={getInputStyle('type')}
+                                    value={formData.type} 
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= 50) {
+                                            setFormData({...formData, type: e.target.value});
+                                            setValidationErrors({...validationErrors, type: ''});
+                                        } else {
+                                            setValidationErrors({...validationErrors, type: 'Тип ТО не должен превышать 50 символов'});
+                                        }
+                                    }} 
+                                    required 
+                                />
+                                {validationErrors.type && <div style={getErrorStyle()}>{validationErrors.type}</div>}
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {formData.type.length}/50 символов
+                                </div>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Плановая дата *</label>
-                                <input type="date" style={styles.input} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
+                                <input type="date" style={getInputStyle('plannedDate')} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
+                                {validationErrors.plannedDate && <div style={getErrorStyle()}>{validationErrors.plannedDate}</div>}
                             </div>
                         </div>
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Описание</label>
-                                <input type="text" style={styles.input} placeholder="Дополнительная информация" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                                <input type="text" style={getInputStyle('description')} placeholder="Дополнительная информация (не более 100 символов)" value={formData.description} onChange={(e) => {
+                                    if (e.target.value.length <= 100) {
+                                        setFormData({...formData, description: e.target.value});
+                                        setValidationErrors({...validationErrors, description: ''});
+                                    } else {
+                                        setValidationErrors({...validationErrors, description: 'Описание не должно превышать 100 символов'});
+                                    }
+                                }} />
+                                {validationErrors.description && <div style={getErrorStyle()}>{validationErrors.description}</div>}
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {formData.description.length}/100 символов
+                                </div>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Ответственный работник</label>
-                                <input type="text" style={styles.input} placeholder="ФИО" value={formData.worker} onChange={(e) => setFormData({...formData, worker: e.target.value})} />
+                                <input 
+                                    type="text" 
+                                    style={styles.input}
+                                    placeholder="ФИО (не более 100 символов)"
+                                    value={formData.worker} 
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= 100) {
+                                            setFormData({...formData, worker: e.target.value});
+                                        }
+                                    }} 
+                                />
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {formData.worker.length}/100 символов
+                                </div>
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Сохранить</button>
@@ -346,7 +437,6 @@ const TORepairPages = () => {
                 </div>
             )}
 
-            {/* Форма создания заявки на ремонт */}
             {showForm && activeTab === 'requests' && (
                 <div style={styles.formContainer}>
                     <h3>Новая заявка на ремонт</h3>
@@ -354,18 +444,48 @@ const TORepairPages = () => {
                         <div style={styles.formRow}>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Оборудование *</label>
-                                <select style={styles.select} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} required>
+                                <select style={getRepairInputStyle('equipmentInventoryNumber')} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
+                                {repairValidationErrors.equipmentInventoryNumber && <div style={getErrorStyle()}>{repairValidationErrors.equipmentInventoryNumber}</div>}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Кто зафиксировал *</label>
-                                <input type="text" style={styles.input} placeholder="ФИО сотрудника или клиента" value={repairForm.creator} onChange={(e) => setRepairForm({...repairForm, creator: e.target.value})} required />
+                                <input 
+                                    type="text" 
+                                    placeholder="ФИО сотрудника или клиента (не более 50 символов)"
+                                    style={getRepairInputStyle('creator')}
+                                    value={repairForm.creator} 
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= 50) {
+                                            setRepairForm({...repairForm, creator: e.target.value});
+                                            setRepairValidationErrors({...repairValidationErrors, creator: ''});
+                                        } else {
+                                            setRepairValidationErrors({...repairValidationErrors, creator: 'ФИО не должно превышать 50 символов'});
+                                        }
+                                    }} 
+                                    required 
+                                />
+                                {repairValidationErrors.creator && <div style={getErrorStyle()}>{repairValidationErrors.creator}</div>}
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {repairForm.creator.length}/50 символов
+                                </div>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Описание</label>
-                                <input type="text" style={styles.input} placeholder="Описание проблемы" value={repairForm.description} onChange={(e) => setRepairForm({...repairForm, description: e.target.value})} />
+                                <input type="text" style={getRepairInputStyle('description')} placeholder="Описание проблемы (не более 100 символов)" value={repairForm.description} onChange={(e) => {
+                                    if (e.target.value.length <= 100) {
+                                        setRepairForm({...repairForm, description: e.target.value});
+                                        setRepairValidationErrors({...repairValidationErrors, description: ''});
+                                    } else {
+                                        setRepairValidationErrors({...repairValidationErrors, description: 'Описание не должно превышать 100 символов'});
+                                    }
+                                }} />
+                                {repairValidationErrors.description && <div style={getErrorStyle()}>{repairValidationErrors.description}</div>}
+                                <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {repairForm.description.length}/100 символов
+                                </div>
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Создать заявку</button>
@@ -373,11 +493,12 @@ const TORepairPages = () => {
                 </div>
             )}
 
-            {/* Таблица планового ТО */}
             {activeTab === 'to' && (
                 <>
                     <h3>Плановое техническое обслуживание</h3>
-                    {loading ? <p>Загрузка...</p> : (
+                    {loading ? (
+                        <p>Загрузка...</p>
+                    ) : (
                         <>
                             <table style={styles.table}>
                                 <thead>
@@ -415,11 +536,12 @@ const TORepairPages = () => {
                 </>
             )}
 
-            {/* Таблица заявок на ремонт */}
             {activeTab === 'requests' && (
                 <>
                     <h3>Заявки на ремонт</h3>
-                    {loading ? <p>Загрузка...</p> : (
+                    {loading ? (
+                        <p>Загрузка...</p>
+                    ) : (
                         <>
                             <table style={styles.table}>
                                 <thead>

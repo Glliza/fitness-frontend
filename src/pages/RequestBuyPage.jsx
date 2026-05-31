@@ -12,14 +12,14 @@ const RequestBuyPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     
+    // Состояние для ошибок валидации
+    const [validationErrors, setValidationErrors] = useState({});
+    
     // Пагинация
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [pageSize] = useState(10);
-    
-    // Добавляем состояние для ошибки валидации
-    const [nameValidationError, setNameValidationError] = useState('');
     
     const [formData, setFormData] = useState({
         equipmentInventoryNumber: '',
@@ -65,33 +65,9 @@ const RequestBuyPage = () => {
         loadRequests(page);
     }, [page, loadRequests]);
 
-    // Функция валидации имени
-    const validateName = (value) => {
-        if (value.length > 255) {
-            setNameValidationError('Наименование не может превышать 255 символов');
-            return false;
-        } else {
-            setNameValidationError('');
-            return true;
-        }
-    };
-
-    // Обработчик изменения имени с ограничением ввода
-    const handleNameChange = (e) => {
-        let value = e.target.value;
-        
-        // Ограничиваем ввод до 255 символов
-        if (value.length <= 255) {
-            setFormData({...formData, name: value});
-            validateName(value);
-        } else {
-            setNameValidationError('Наименование не может превышать 255 символов');
-            // Можно также вывести сообщение, но не обновлять state
-        }
-    };
-
     const handleCreate = async (e) => {
         e.preventDefault();
+        setValidationErrors({});
         
         // Проверяем валидацию перед отправкой
         if (!formData.name || !formData.count) {
@@ -99,8 +75,15 @@ const RequestBuyPage = () => {
             return;
         }
         
-        if (formData.name.length > 255) {
-            setError('Наименование не может превышать 255 символов');
+        if (formData.name.length > 50) {
+            setValidationErrors({ name: 'Наименование не может превышать 50 символов' });
+            setError('Пожалуйста, исправьте ошибки в форме');
+            return;
+        }
+        
+        if (formData.count <= 0) {
+            setValidationErrors({ count: 'Количество должно быть больше 0' });
+            setError('Пожалуйста, исправьте ошибки в форме');
             return;
         }
         
@@ -113,13 +96,18 @@ const RequestBuyPage = () => {
             await requestBuyService.create(dataToSend);
             setShowForm(false);
             setFormData({ equipmentInventoryNumber: '', name: '', count: 1 });
-            setNameValidationError('');
+            setValidationErrors({});
             await loadRequests(0);
             setPage(0);
             setSuccess('Заявка на закупку успешно создана');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            setError(err.response?.data?.message || 'Ошибка создания заявки');
+            if (err.response?.status === 400 && err.response?.data?.errors) {
+                setValidationErrors(err.response.data.errors);
+                setError('Пожалуйста, исправьте ошибки в форме');
+            } else {
+                setError(err.response?.data?.message || 'Ошибка создания заявки');
+            }
         }
     };
 
@@ -157,6 +145,17 @@ const RequestBuyPage = () => {
             setPage(newPage);
         }
     };
+
+    const getInputStyle = (fieldName) => ({
+        ...styles.input,
+        borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
+    });
+
+    const getErrorStyle = () => ({
+        color: '#dc3545',
+        fontSize: '0.75rem',
+        marginTop: '0.25rem',
+    });
 
     const renderPagination = () => {
         if (totalPages <= 1) return null;
@@ -210,15 +209,6 @@ const RequestBuyPage = () => {
             backgroundColor: getStatusColor(status),
             color: 'white',
         }),
-        validationError: {
-            color: '#dc3545',
-            fontSize: '0.75rem',
-            marginTop: '0.25rem'
-        },
-        inputError: {
-            border: '1px solid #dc3545'
-        },
-        // Добавляем стили для переноса текста в ячейке таблицы
         tdWithWrap: {
             padding: '12px',
             borderBottom: '1px solid #dee2e6',
@@ -266,34 +256,35 @@ const RequestBuyPage = () => {
                                 <label style={styles.label}>Наименование для закупки *</label>
                                 <input 
                                     type="text" 
-                                    style={{
-                                        ...styles.input,
-                                        ...(nameValidationError ? styles.inputError : {})
-                                    }} 
+                                    placeholder="Введите наименование (2-50 символов)"
+                                    style={getInputStyle('name')}
                                     value={formData.name} 
-                                    onChange={handleNameChange} 
-                                    maxLength={255}
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= 50) {
+                                            setFormData({...formData, name: e.target.value});
+                                            setValidationErrors({...validationErrors, name: ''});
+                                        } else {
+                                            setValidationErrors({...validationErrors, name: 'Наименование не может превышать 50 символов'});
+                                        }
+                                    }}
                                     required 
                                 />
-                                {nameValidationError && (
-                                    <div style={styles.validationError}>
-                                        ⚠️ {nameValidationError}
-                                    </div>
-                                )}
+                                {validationErrors.name && <div style={getErrorStyle()}>{validationErrors.name}</div>}
                                 <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
-                                    {formData.name.length}/255 символов
+                                    {formData.name.length}/50 символов
                                 </div>
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Количество *</label>
                                 <input 
                                     type="number" 
-                                    style={styles.input} 
+                                    style={getInputStyle('count')}
                                     value={formData.count} 
-                                    onChange={(e) => setFormData({...formData, count: parseInt(e.target.value)})} 
+                                    onChange={(e) => setFormData({...formData, count: parseInt(e.target.value) || 1})} 
                                     min="1" 
                                     required 
                                 />
+                                {validationErrors.count && <div style={getErrorStyle()}>{validationErrors.count}</div>}
                             </div>
                         </div>
                         <button type="submit" style={styles.button}>Создать</button>
@@ -327,7 +318,6 @@ const RequestBuyPage = () => {
                                             {req.equipmentInventoryNumber ? getEquipmentName(req.equipmentInventoryNumber) : 'Новое'}
                                             {req.equipmentInventoryNumber && ` (№${req.equipmentInventoryNumber})`}
                                         </td>
-                                        {/* Ячейка с переносом текста для названия */}
                                         <td style={styles.tdWithWrap}>
                                             <div style={{ 
                                                 maxWidth: '300px', 

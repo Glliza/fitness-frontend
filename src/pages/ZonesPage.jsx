@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { zoneService } from '../services/zoneService';
-import { commonStyles, colors } from '../styles/globalStyles';
+import { commonStyles } from '../styles/globalStyles';
 
 const ZonesPage = () => {
     const [zones, setZones] = useState([]);
@@ -9,6 +9,9 @@ const ZonesPage = () => {
     const [showForm, setShowForm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    
+    // Состояние для ошибок валидации полей
+    const [validationErrors, setValidationErrors] = useState({});
     
     // Пагинация
     const [page, setPage] = useState(0);
@@ -56,6 +59,7 @@ const ZonesPage = () => {
         setIsEditing(false);
         setEditingId(null);
         setShowForm(false);
+        setValidationErrors({}); // Очищаем ошибки валидации
     };
 
     const handleEdit = (zone) => {
@@ -69,10 +73,13 @@ const ZonesPage = () => {
         setIsEditing(true);
         setEditingId(zone.id);
         setShowForm(true);
+        setValidationErrors({}); // Очищаем ошибки валидации
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setValidationErrors({}); // Сбрасываем предыдущие ошибки
+        
         try {
             if (isEditing) {
                 await zoneService.update(editingId, formData);
@@ -81,8 +88,15 @@ const ZonesPage = () => {
             }
             resetForm();
             loadZones(page);
+            setError('');
         } catch (err) {
-            setError(isEditing ? 'Ошибка обновления зоны' : 'Ошибка создания зоны');
+            // Проверяем, есть ли детальные ошибки валидации от бэкенда
+            if (err.response?.status === 400 && err.response?.data?.errors) {
+                setValidationErrors(err.response.data.errors);
+                setError('Пожалуйста, исправьте ошибки в форме');
+            } else {
+                setError(err.response?.data?.message || (isEditing ? 'Ошибка обновления зоны' : 'Ошибка создания зоны'));
+            }
         }
     };
 
@@ -103,7 +117,22 @@ const ZonesPage = () => {
         }
     };
 
+    // Функция для получения стиля поля с ошибкой
+    const getInputStyle = (fieldName) => ({
+        ...styles.input,
+        borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
+    });
+
+    // Функция для получения стиля сообщения об ошибке
+    const getErrorStyle = () => ({
+        color: '#dc3545',
+        fontSize: '0.75rem',
+        marginTop: '0.25rem',
+    });
+
     const renderPagination = () => {
+        if (totalPages <= 1) return null;
+        
         const pages = [];
         const maxVisible = 5;
         let startPage = Math.max(0, page - Math.floor(maxVisible / 2));
@@ -198,22 +227,28 @@ const ZonesPage = () => {
                                 <label style={styles.label}>Название *</label>
                                 <input
                                     type="text"
-                                    placeholder="Введите название"
+                                    placeholder="Введите название (2-50 символов)"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
-                                    style={styles.input}
+                                    style={getInputStyle('name')}
                                 />
+                                {validationErrors.name && (
+                                    <div style={getErrorStyle()}>⚠️ {validationErrors.name}</div>
+                                )}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Описание</label>
                                 <input
                                     type="text"
-                                    placeholder="Введите описание"
+                                    placeholder="Введите описание (не более 100 символов)"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    style={styles.input}
+                                    style={getInputStyle('description')}
                                 />
+                                {validationErrors.description && (
+                                    <div style={getErrorStyle()}>⚠️ {validationErrors.description}</div>
+                                )}
                             </div>
                         </div>
                         <div style={styles.formRow}>
@@ -221,23 +256,29 @@ const ZonesPage = () => {
                                 <label style={styles.label}>Вместимость *</label>
                                 <input
                                     type="number"
-                                    placeholder="Введите вместимость"
+                                    placeholder="Введите вместимость (больше 0)"
                                     value={formData.capacity}
                                     onChange={(e) => setFormData({ ...formData, capacity: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                     required
-                                    style={styles.input}
+                                    style={getInputStyle('capacity')}
                                 />
+                                {validationErrors.capacity && (
+                                    <div style={getErrorStyle()}>⚠️ {validationErrors.capacity}</div>
+                                )}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Этаж *</label>
                                 <input
                                     type="number"
-                                    placeholder="Введите этаж"
+                                    placeholder="Введите этаж (не может быть отрицательным)"
                                     value={formData.floor}
                                     onChange={(e) => setFormData({ ...formData, floor: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                     required
-                                    style={styles.input}
+                                    style={getInputStyle('floor')}
                                 />
+                                {validationErrors.floor && (
+                                    <div style={getErrorStyle()}>⚠️ {validationErrors.floor}</div>
+                                )}
                             </div>
                         </div>
                         <div>

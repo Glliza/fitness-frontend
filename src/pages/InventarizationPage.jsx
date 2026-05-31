@@ -12,10 +12,9 @@ const InventarizationPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedZone, setSelectedZone] = useState('');
-    const [report, setReport] = useState(null);
+    const [reports, setReports] = useState([]); // История инвентаризаций
     const [inProgress, setInProgress] = useState(false);
     const [isAllMode, setIsAllMode] = useState(false);
-    const [invIdMap, setInvIdMap] = useState({});
 
     const loadZones = async () => {
         try {
@@ -28,16 +27,26 @@ const InventarizationPage = () => {
 
     const loadEquipment = async () => {
         try {
-            const response = await equipmentService.getAllList();
+            const response = await equipmentService.getAll(0, 100);
             setEquipment(response.data.content || []);
         } catch (err) {
             console.error(err);
         }
     };
 
+    const loadHistory = async () => {
+        try {
+            const response = await inventarizationService.getHistory();
+            setReports(response.data);
+        } catch (err) {
+            console.error('Ошибка загрузки истории:', err);
+        }
+    };
+
     useEffect(() => {
         loadZones();
         loadEquipment();
+        loadHistory(); // Загружаем историю при загрузке страницы
     }, []);
 
     const handleStart = async () => {
@@ -47,21 +56,17 @@ const InventarizationPage = () => {
         }
         setLoading(true);
         setError('');
-        setReport(null);
         setIsAllMode(false);
         try {
             const response = await inventarizationService.start(selectedZone);
             setInventarizations(response.data);
             setInProgress(true);
-            
-            // Проверка на пустой список оборудования
             if (!response.data || response.data.length === 0) {
                 setError('В выбранной зоне нет оборудования для инвентаризации');
                 setInProgress(false);
             }
         } catch (err) {
-            setError('Ошибка начала инвентаризации');
-            console.error(err);
+            setError(err.response?.data?.message || 'Ошибка начала инвентаризации');
         } finally {
             setLoading(false);
         }
@@ -70,98 +75,47 @@ const InventarizationPage = () => {
     const handleStartAll = async () => {
         setLoading(true);
         setError('');
-        setReport(null);
         setIsAllMode(true);
         try {
             const response = await inventarizationService.startAll();
-            console.log('startAll response:', response.data);
-            
-            // Проверка на пустой список оборудования
             if (!response.data || response.data.length === 0) {
                 setError('Нет оборудования для инвентаризации');
                 setLoading(false);
                 return;
             }
-            
             setGroupedInventarizations(response.data);
-            const allItems = [];
-            const newInvIdMap = {};
-            
-            response.data.forEach(group => {
-                if (group.items && group.items.length > 0) {
-                    group.items.forEach(item => {
-                        allItems.push({
-                            ...item,
-                            zoneId: group.zoneId,
-                            zoneName: group.zoneName,
-                            id: item.id || item.equipmentInventoryNumber
-                        });
-                        if (item.id) {
-                            newInvIdMap[item.equipmentInventoryNumber] = item.id;
-                        }
-                    });
-                }
-            });
-            
-            // Проверка на пустой список после обработки групп
-            if (allItems.length === 0) {
-                setError('Нет оборудования для инвентаризации');
-                setInProgress(false);
-                setLoading(false);
-                return;
-            }
-            
-            setInventarizations(allItems);
-            setInvIdMap(newInvIdMap);
             setInProgress(true);
         } catch (err) {
-            setError('Ошибка начала инвентаризации');
-            console.error(err);
+            setError(err.response?.data?.message || 'Ошибка начала инвентаризации');
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePerformStep = async (invId, equipmentInventoryNumber, actualCount) => {
+    const handlePerformStep = async (invId, actualCount) => {
+        if (actualCount === undefined || actualCount === null || actualCount < 0) {
+            setError('Введите корректное количество');
+            return;
+        }
         setLoading(true);
         try {
-            let stepId = invId;
-            if (!stepId || stepId === 'undefined') {
-                stepId = invIdMap[equipmentInventoryNumber];
-            }
-            if (!stepId) {
-                const found = inventarizations.find(inv => inv.equipmentInventoryNumber === equipmentInventoryNumber);
-                stepId = found?.id;
-            }
-            if (!stepId) {
-                setError('Не удалось определить ID инвентаризации');
-                setLoading(false);
-                return;
-            }
-            
-            await inventarizationService.performStep(stepId, actualCount);
-            
-            const updated = inventarizations.map(inv => 
-                (inv.id === stepId || inv.equipmentInventoryNumber === equipmentInventoryNumber) 
-                    ? { ...inv, realCount: actualCount } 
-                    : inv
-            );
-            setInventarizations(updated);
-            
+            await inventarizationService.performStep(invId, actualCount);
             if (isAllMode) {
                 const updatedGroups = groupedInventarizations.map(group => ({
                     ...group,
                     items: group.items.map(item => 
-                        (item.id === stepId || item.equipmentInventoryNumber === equipmentInventoryNumber)
-                            ? { ...item, realCount: actualCount }
-                            : item
+                        item.id === invId ? { ...item, realCount: actualCount } : item
                     )
                 }));
                 setGroupedInventarizations(updatedGroups);
+            } else {
+                const updated = inventarizations.map(inv => 
+                    inv.id === invId ? { ...inv, realCount: actualCount } : inv
+                );
+                setInventarizations(updated);
             }
         } catch (err) {
-            setError('Ошибка выполнения шага');
-            console.error(err);
+            setError(err.response?.data?.message || 'Ошибка выполнения шага');
         } finally {
             setLoading(false);
         }
@@ -176,11 +130,13 @@ const InventarizationPage = () => {
             } else {
                 response = await inventarizationService.finish(selectedZone);
             }
-            setReport(response.data);
+            // Обновляем историю после завершения
+            await loadHistory();
             setInProgress(false);
+            setInventarizations([]);
+            setGroupedInventarizations([]);
         } catch (err) {
-            setError('Ошибка завершения инвентаризации');
-            console.error(err);
+            setError(err.response?.data?.message || 'Ошибка завершения инвентаризации');
         } finally {
             setLoading(false);
         }
@@ -191,40 +147,53 @@ const InventarizationPage = () => {
         return eq ? eq.name : 'Неизвестно';
     };
 
-    const remainingCount = inventarizations.filter(inv => inv.realCount === null || inv.realCount === undefined).length;
+    const getZoneName = (zoneId) => {
+        if (!zoneId) return 'Все зоны';
+        const zone = zones.find(z => z.id === zoneId);
+        return zone ? zone.name : `Зона ${zoneId}`;
+    };
+
+    const getRemainingCount = () => {
+        if (isAllMode) {
+            let count = 0;
+            groupedInventarizations.forEach(group => {
+                group.items.forEach(item => {
+                    if (item.realCount === null || item.realCount === undefined) count++;
+                });
+            });
+            return count;
+        } else {
+            return inventarizations.filter(inv => inv.realCount === null || inv.realCount === undefined).length;
+        }
+    };
+
+    const getTotalCount = () => {
+        if (isAllMode) {
+            let count = 0;
+            groupedInventarizations.forEach(group => {
+                count += group.items.length;
+            });
+            return count;
+        } else {
+            return inventarizations.length;
+        }
+    };
+
+    const remainingCount = getRemainingCount();
+    const totalCount = getTotalCount();
 
     const styles = {
         ...commonStyles,
         zoneGroup: { marginTop: '1.5rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px', fontWeight: 'bold' },
         subTable: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginBottom: '1rem' },
         input: { width: '100px', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px' },
-        progressBar: { marginTop: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
-        reportContainer: { marginTop: '2rem', padding: '1rem', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '8px' },
-        warningBox: {
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffeeba',
-            borderRadius: '8px',
-            padding: '20px',
-            textAlign: 'center',
-            marginTop: '20px'
-        },
-        warningText: {
-            color: '#856404',
-            fontSize: '1rem',
-            marginBottom: '10px'
-        },
-        warningIcon: {
-            fontSize: '3rem',
-            marginBottom: '10px'
-        }
-    };
-
-    // Проверка на наличие оборудования перед отображением таблицы
-    const hasEquipment = () => {
-        if (inProgress && inventarizations.length === 0) {
-            return false;
-        }
-        return true;
+        progressBar: { marginTop: '1rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
+        reportContainer: { marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', marginBottom: '1rem' },
+        reportsContainer: { marginTop: '2rem' },
+        historyTitle: { marginTop: '2rem', marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 'bold' },
+        buttonGroup: { display: 'flex', gap: '1rem', alignItems: 'flex-end' },
+        reportHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' },
+        reportDate: { fontSize: '0.85rem', color: '#6c757d' },
     };
 
     return (
@@ -237,7 +206,7 @@ const InventarizationPage = () => {
 
             {!inProgress && (
                 <div style={styles.formContainer}>
-                    <h3>Начать инвентаризацию</h3>
+                    <h3>Начать новую инвентаризацию</h3>
                     <div style={styles.formRow}>
                         <div style={styles.formGroup}>
                             <label style={styles.label}>Зона (для частичной инвентаризации)</label>
@@ -246,109 +215,40 @@ const InventarizationPage = () => {
                                 {zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
                             </select>
                         </div>
-                        <div>
-                            <button style={styles.button} onClick={handleStart} disabled={!selectedZone}>
-                                По зоне
+                        <div style={styles.buttonGroup}>
+                            <button style={styles.button} onClick={handleStart} disabled={!selectedZone || loading}>
+                                {loading ? 'Загрузка...' : 'По зоне'}
                             </button>
-                            <button style={styles.successBtn} onClick={handleStartAll}>
-                                По всему оборудованию
+                            <button style={styles.successBtn} onClick={handleStartAll} disabled={loading}>
+                                {loading ? 'Загрузка...' : 'По всему оборудованию'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {inProgress && inventarizations.length === 0 && (
-                <div style={styles.warningBox}>
-                    <div style={styles.warningIcon}>⚠️</div>
-                    <div style={styles.warningText}>
-                        <strong>Нет оборудования для инвентаризации</strong>
-                    </div>
-                    <div style={styles.warningText}>
-                        {isAllMode 
-                            ? 'В системе не найдено ни одного оборудования. Добавьте оборудование перед началом инвентаризации.'
-                            : 'В выбранной зоне нет оборудования. Выберите другую зону или добавьте оборудование.'}
-                    </div>
-                    <button 
-                        style={styles.button} 
-                        onClick={() => {
-                            setInProgress(false);
-                            setInventarizations([]);
-                            setError('');
-                        }}
-                    >
-                        Назад
-                    </button>
-                </div>
-            )}
-
-            {inProgress && inventarizations.length > 0 && (
+            {inProgress && totalCount > 0 && (
                 <>
                     <div style={styles.progressBar}>
-                        <strong>Прогресс:</strong> {inventarizations.length - remainingCount} из {inventarizations.length} проверено
+                        <strong>Прогресс:</strong> {totalCount - remainingCount} из {totalCount} проверено
                     </div>
 
                     <h3>Пошаговая сверка</h3>
                     
                     {!isAllMode && (
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th style={styles.th}>Инв. номер</th>
-                                    <th style={styles.th}>Оборудование</th>
-                                    <th style={styles.th}>Ожидаемое количество</th>
-                                    <th style={styles.th}>Фактическое количество</th>
-                                    <th style={styles.th}>Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {inventarizations.map((inv) => (
-                                    <tr key={inv.id}>
-                                        <td style={styles.td}>{inv.equipmentInventoryNumber}</td>
-                                        <td style={styles.td}>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
-                                        <td style={styles.td}>{inv.count}</td>
-                                        <td style={styles.td}>
-                                            {inv.realCount !== null && inv.realCount !== undefined ? (
-                                                inv.realCount
-                                            ) : (
-                                                <input
-                                                    type="number"
-                                                    style={styles.input}
-                                                    min="0"
-                                                    placeholder="Введите"
-                                                    onBlur={(e) => handlePerformStep(inv.id, inv.equipmentInventoryNumber, parseInt(e.target.value))}
-                                                />
-                                            )}
-                                        </td>
-                                        <td style={styles.td}>
-                                            {inv.realCount === null && (
-                                                <span>Ожидает проверки</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-
-                    {isAllMode && groupedInventarizations.map((group) => (
-                        <div key={group.zoneId}>
-                            <div style={styles.zoneGroup}>
-                                Зона: {group.zoneName || `ID: ${group.zoneId}`}
-                            </div>
-                            <table style={styles.subTable}>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={styles.table}>
                                 <thead>
                                     <tr>
                                         <th style={styles.th}>Инв. номер</th>
                                         <th style={styles.th}>Оборудование</th>
                                         <th style={styles.th}>Ожидаемое количество</th>
                                         <th style={styles.th}>Фактическое количество</th>
-                                        <th style={styles.th}>Действие</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {group.items && group.items.map((inv) => (
-                                        <tr key={inv.equipmentInventoryNumber}>
+                                    {inventarizations.map((inv) => (
+                                        <tr key={inv.id}>
                                             <td style={styles.td}>{inv.equipmentInventoryNumber}</td>
                                             <td style={styles.td}>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
                                             <td style={styles.td}>{inv.count}</td>
@@ -361,19 +261,56 @@ const InventarizationPage = () => {
                                                         style={styles.input}
                                                         min="0"
                                                         placeholder="Введите"
-                                                        onBlur={(e) => handlePerformStep(inv.id, inv.equipmentInventoryNumber, parseInt(e.target.value))}
+                                                        onBlur={(e) => handlePerformStep(inv.id, parseInt(e.target.value))}
                                                     />
-                                                )}
-                                            </td>
-                                            <td style={styles.td}>
-                                                {inv.realCount === null && (
-                                                    <span>Ожидает проверки</span>
                                                 )}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    )}
+
+                    {isAllMode && groupedInventarizations.map((group) => (
+                        <div key={group.zoneId}>
+                            <div style={styles.zoneGroup}>
+                                Зона: {group.zoneName || `ID: ${group.zoneId}`}
+                            </div>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={styles.subTable}>
+                                    <thead>
+                                        <tr>
+                                            <th style={styles.th}>Инв. номер</th>
+                                            <th style={styles.th}>Оборудование</th>
+                                            <th style={styles.th}>Ожидаемое количество</th>
+                                            <th style={styles.th}>Фактическое количество</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {group.items && group.items.map((inv) => (
+                                            <tr key={inv.equipmentInventoryNumber}>
+                                                <td style={styles.td}>{inv.equipmentInventoryNumber}</td>
+                                                <td style={styles.td}>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
+                                                <td style={styles.td}>{inv.count}</td>
+                                                <td style={styles.td}>
+                                                    {inv.realCount !== null && inv.realCount !== undefined ? (
+                                                        inv.realCount
+                                                    ) : (
+                                                        <input
+                                                            type="number"
+                                                            style={styles.input}
+                                                            min="0"
+                                                            placeholder="Введите"
+                                                            onBlur={(e) => handlePerformStep(inv.id, parseInt(e.target.value))}
+                                                        />
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     ))}
 
@@ -387,43 +324,38 @@ const InventarizationPage = () => {
                 </>
             )}
 
-            {report && (
-                <div style={styles.reportContainer}>
-                    <h3>Отчёт о расхождениях</h3>
-                    <p><strong>Зона:</strong> {report.zoneId ? zones.find(z => z.id === report.zoneId)?.name || report.zoneId : 'Все зоны'}</p>
-                    <p><strong>Проверено единиц:</strong> {report.totalScanned}</p>
-                    <p><strong>Дата:</strong> {new Date(report.date).toLocaleDateString('ru-RU')}</p>
-                    {report.discrepancies && report.discrepancies.length > 0 ? (
-                        <>
-                            <h4>Расхождения:</h4>
-                            <ul>
-                                {report.discrepancies.map((d, i) => {
-                                    // Парсим строку типа "Equipment 5: expected 1, actual 5"
-                                    const match = d.match(/(.+?): expected (\d+), actual (\d+)/);
-                                    if (match) {
-                                        let [, equipment, expected, actual] = match;
-                                        equipment = equipment.trim();
-                                        // Заменяем "Equipment" на "Оборудование под инвентарным номером"
-                                        if (equipment.startsWith('Equipment')) {
-                                            const number = equipment.replace('Equipment', '').trim();
-                                            equipment = `Оборудование под инвентарным номером ${number}`;
-                                        }
-                                        return (
-                                            <li key={i}>
-                                                <strong>{equipment}</strong>: ожидалось {expected}, фактически {actual}
-                                            </li>
-                                        );
-                                    }
-                                    // Если не удалось распарсить, выводим как есть
-                                    return <li key={i}>{d}</li>;
-                                })}
-                            </ul>
-                        </>
-                    ) : (
-                        <p style={{ color: '#28a745' }}>Расхождений не обнаружено</p>
-                    )}
-                </div>
-            )}
+            {/* История инвентаризаций */}
+            <div style={styles.reportsContainer}>
+                <h2 style={styles.historyTitle}>История инвентаризаций</h2>
+                {reports.length === 0 ? (
+                    <div style={styles.emptyMessage}>
+                        Нет завершённых инвентаризаций
+                    </div>
+                ) : (
+                    reports.map((report, idx) => (
+                        <div key={idx} style={styles.reportContainer}>
+                            <div style={styles.reportHeader}>
+                                <strong>Инвентаризация #{reports.length - idx}</strong>
+                                <span style={styles.reportDate}>Дата: {report.date}</span>
+                            </div>
+                            <p><strong>Зона:</strong> {getZoneName(report.zoneId)}</p>
+                            <p><strong>Проверено единиц:</strong> {report.totalScanned}</p>
+                            {report.discrepancies && report.discrepancies.length > 0 ? (
+                                <>
+                                    <strong>Расхождения:</strong>
+                                    <ul>
+                                        {report.discrepancies.map((d, i) => (
+                                            <li key={i}>{d}</li>
+                                        ))}
+                                    </ul>
+                                </>
+                            ) : (
+                                <p style={{ color: '#28a745' }}>✅ Расхождений не обнаружено</p>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };

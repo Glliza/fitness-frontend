@@ -12,11 +12,11 @@ const EquipmentPage = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState(null);
     
-    // Фильтры
+    const [validationErrors, setValidationErrors] = useState({});
+    
     const [filterZone, setFilterZone] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     
-    // Пагинация
     const [page, setPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
@@ -29,7 +29,6 @@ const EquipmentPage = () => {
         dataBuy: '',
     });
 
-    // Загрузка всех зон (без пагинации для фильтра)
     const loadAllZones = async () => {
         try {
             const response = await zoneService.getAll(0, 100);
@@ -39,11 +38,9 @@ const EquipmentPage = () => {
         }
     };
 
-    // Функция загрузки оборудования с текущими фильтрами
     const loadEquipment = useCallback(async (currentPage = 0, zone = filterZone, status = filterStatus) => {
         try {
             setLoading(true);
-            console.log('Загрузка с фильтрами:', { zone, status, page: currentPage });
             const response = await equipmentService.getAll(
                 currentPage, pageSize, 'id', 'asc',
                 zone || null,
@@ -62,18 +59,14 @@ const EquipmentPage = () => {
         }
     }, [filterZone, filterStatus, pageSize]);
 
-    // При изменении фильтров или страницы - загружаем данные
     useEffect(() => {
         loadEquipment(page, filterZone, filterStatus);
     }, [page, filterZone, filterStatus, loadEquipment]);
 
-    // Применение фильтров (сброс на первую страницу)
     const applyFilters = () => {
         setPage(0);
-        // loadEquipment вызовется через useEffect
     };
 
-    // Сброс фильтров
     const resetFilters = () => {
         setFilterZone('');
         setFilterStatus('');
@@ -94,6 +87,7 @@ const EquipmentPage = () => {
         setIsEditing(false);
         setEditingId(null);
         setShowForm(false);
+        setValidationErrors({});
     };
 
     const handleEdit = (item) => {
@@ -106,10 +100,12 @@ const EquipmentPage = () => {
         setIsEditing(true);
         setEditingId(item.id);
         setShowForm(true);
+        setValidationErrors({});
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setValidationErrors({});
     
         if (!formData.zoneId) {
             setError('Выберите зону');
@@ -138,10 +134,15 @@ const EquipmentPage = () => {
                 await equipmentService.create(dataToSend);
             }
             resetForm();
-            // Перезагружаем текущую страницу с фильтрами
             loadEquipment(page, filterZone, filterStatus);
+            setError('');
         } catch (err) {
-            setError(isEditing ? 'Ошибка обновления оборудования' : 'Ошибка создания оборудования');
+            if (err.response?.status === 400 && err.response?.data?.errors) {
+                setValidationErrors(err.response.data.errors);
+                setError('Пожалуйста, исправьте ошибки в форме');
+            } else {
+                setError(err.response?.data?.message || (isEditing ? 'Ошибка обновления оборудования' : 'Ошибка создания оборудования'));
+            }
             console.error(err);
         }
     };
@@ -169,6 +170,17 @@ const EquipmentPage = () => {
         }
     };
 
+    const getInputStyle = (fieldName) => ({
+        ...styles.input,
+        borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
+    });
+
+    const getErrorStyle = () => ({
+        color: '#dc3545',
+        fontSize: '0.75rem',
+        marginTop: '0.25rem',
+    });
+
     const renderPagination = () => {
         if (totalPages <= 1) return null;
         
@@ -187,50 +199,25 @@ const EquipmentPage = () => {
         
         return (
             <div style={commonStyles.pagination}>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => handlePageChange(0)}
-                    disabled={page === 0}
-                >
+                <button style={commonStyles.pageButton} onClick={() => handlePageChange(0)} disabled={page === 0}>
                     ⏮ Первая
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page === 0}
-                >
+                <button style={commonStyles.pageButton} onClick={() => handlePageChange(page - 1)} disabled={page === 0}>
                     ◀ Назад
                 </button>
-                
                 {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
-                
                 {pages.map(p => (
-                    <button
-                        key={p}
-                        style={p === page ? commonStyles.activePageButton : commonStyles.pageButton}
-                        onClick={() => handlePageChange(p)}
-                    >
+                    <button key={p} style={p === page ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => handlePageChange(p)}>
                         {p + 1}
                     </button>
                 ))}
-                
                 {endPage < totalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page === totalPages - 1}
-                >
+                <button style={commonStyles.pageButton} onClick={() => handlePageChange(page + 1)} disabled={page === totalPages - 1}>
                     Вперед ▶
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => handlePageChange(totalPages - 1)}
-                    disabled={page === totalPages - 1}
-                >
+                <button style={commonStyles.pageButton} onClick={() => handlePageChange(totalPages - 1)} disabled={page === totalPages - 1}>
                     Последняя ⏩
                 </button>
-                
                 <span style={commonStyles.pageInfo}>
                     Страница {page + 1} из {totalPages} (всего {totalElements} записей)
                 </span>
@@ -238,7 +225,6 @@ const EquipmentPage = () => {
         );
     };
 
-    // Объединяем стили
     const styles = {
         ...commonStyles,
         filterContainer: {
@@ -278,7 +264,6 @@ const EquipmentPage = () => {
 
             {error && <div style={styles.error}>{error}</div>}
 
-            {/* Блок фильтрации */}
             <div style={styles.filterContainer}>
                 <div style={styles.filterGroup}>
                     <label style={styles.filterLabel}>Фильтр по зоне</label>
@@ -332,24 +317,30 @@ const EquipmentPage = () => {
                                     value={formData.zoneId}
                                     onChange={(e) => setFormData({ ...formData, zoneId: e.target.value })}
                                     required
-                                    style={styles.select}
+                                    style={getInputStyle('zoneId')}
                                 >
                                     <option value="">Выберите зону</option>
                                     {zones.map(zone => (
                                         <option key={zone.id} value={zone.id}>{zone.name}</option>
                                     ))}
                                 </select>
+                                {validationErrors.zoneId && (
+                                    <div style={getErrorStyle()}>{validationErrors.zoneId}</div>
+                                )}
                             </div>
                             <div style={styles.formGroup}>
                                 <label style={styles.label}>Название оборудования *</label>
                                 <input
                                     type="text"
-                                    placeholder="Введите название"
+                                    placeholder="Введите название (2-50 символов)"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
-                                    style={styles.input}
+                                    style={getInputStyle('name')}
                                 />
+                                {validationErrors.name && (
+                                    <div style={getErrorStyle()}>{validationErrors.name}</div>
+                                )}
                             </div>
                         </div>
                         <div style={styles.formRow}>
@@ -374,8 +365,11 @@ const EquipmentPage = () => {
                                     value={formData.dataBuy}
                                     onChange={(e) => setFormData({ ...formData, dataBuy: e.target.value })}
                                     required
-                                    style={styles.input}
+                                    style={getInputStyle('dataBuy')}
                                 />
+                                {validationErrors.dataBuy && (
+                                    <div style={getErrorStyle()}>{validationErrors.dataBuy}</div>
+                                )}
                             </div>
                         </div>
                         <div>
