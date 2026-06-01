@@ -6,5 +6,5 @@ export const inventarizationService = {
     performStep: (invId, actualCount) => api.post(`/inventarization/step?invId=${invId}&actualCount=${actualCount}`),
     finish: (zoneId) => api.post(`/inventarization/finish?zoneId=${zoneId}`),
     finishAll: () => api.post('/inventarization/finish-all'),
-    getHistory: () => api.get('/inventarization/history'),
+    getHistory: (page = 0, size = 10) => api.get(`/inventarization/history?page=${page}&size=${size}`),
 };

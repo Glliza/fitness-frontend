@@ -1,0 +1,165 @@
+.zones-container {
+    padding: 2rem;
+}
+
+.zones-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.zones-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.zones-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.zones-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.zones-edit-btn {
+    background-color: #ffc107;
+    color: black;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+
+.zones-delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.zones-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+.zones-form-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+}
+
+.zones-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.zones-form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.zones-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.zones-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.zones-input-error {
+    border-color: #dc3545;
+}
+
+.zones-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.zones-table th {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #f2f2f2;
+}
+
+.zones-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+}
+
+.zones-validation-error {
+    color: #dc3545;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.zones-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.zones-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.zones-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.zones-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.zones-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}

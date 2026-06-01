@@ -1,0 +1,188 @@
+.inventarization-container {
+    padding: 2rem;
+}
+
+.inventarization-header {
+    margin-bottom: 2rem;
+}
+
+.inventarization-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.inventarization-form-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    margin-bottom: 2rem;
+}
+
+.inventarization-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.inventarization-form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.inventarization-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.inventarization-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.inventarization-button-group {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.inventarization-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.inventarization-success-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.inventarization-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.inventarization-progress-bar {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+
+.inventarization-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.inventarization-table th,
+.inventarization-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.inventarization-table th {
+    background-color: #f2f2f2;
+}
+
+.inventarization-input {
+    width: 100px;
+    padding: 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.inventarization-zone-group {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.inventarization-sub-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-bottom: 1rem;
+}
+
+.inventarization-sub-table th,
+.inventarization-sub-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.inventarization-sub-table th {
+    background-color: #f2f2f2;
+}
+
+.inventarization-history-title {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.inventarization-empty-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.inventarization-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.inventarization-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.inventarization-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.inventarization-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.inventarization-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}

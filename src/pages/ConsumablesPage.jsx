@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { consumablesService } from '../services/consumablesService';
 import { zoneService } from '../services/zoneService';
-import { commonStyles } from '../styles/globalStyles';
+import './ConsumablesPage.css';
 
 const ConsumablesPage = () => {
     const [consumables, setConsumables] = useState([]);
@@ -14,13 +14,11 @@ const ConsumablesPage = () => {
     const [amount, setAmount] = useState('');
     const [transactionType, setTransactionType] = useState('income');
     
-    // Пагинация для расходников
     const [consumablesPage, setConsumablesPage] = useState(0);
     const [consumablesTotalPages, setConsumablesTotalPages] = useState(0);
     const [consumablesTotalElements, setConsumablesTotalElements] = useState(0);
     const [consumablesPageSize] = useState(10);
     
-    // Пагинация для зон
     const [zonesPage, setZonesPage] = useState(0);
     const [zonesTotalPages, setZonesTotalPages] = useState(0);
     const [zonesTotalElements, setZonesTotalElements] = useState(0);
@@ -89,18 +87,14 @@ const ConsumablesPage = () => {
             setError('');
         } catch (err) {
             const errorMessage = err.response?.data?.message || '';
-            
-            // Извлекаем доступное и запрошенное количество из сообщения
             const match = errorMessage.match(/Available: (\d+), requested: (\d+)/);
             if (match) {
                 const available = match[1];
                 const requested = match[2];
                 setError(`Недостаточно материала. Доступно: ${available}, запрошено: ${requested}`);
-            }
-            else if (errorMessage === 'No stock found') {
+            } else if (errorMessage === 'No stock found') {
                 setError('В выбранной зоне нет этого материала');
-            }
-            else {
+            } else {
                 setError(errorMessage || 'Ошибка операции');
             }
         }
@@ -156,52 +150,27 @@ const ConsumablesPage = () => {
         }
         
         return (
-            <div style={commonStyles.pagination}>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setConsumablesPage(0)}
-                    disabled={consumablesPage === 0}
-                >
+            <div className="consumables-pagination">
+                <button className="consumables-page-button" onClick={() => setConsumablesPage(0)} disabled={consumablesPage === 0}>
                     ⏮ Первая
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setConsumablesPage(consumablesPage - 1)}
-                    disabled={consumablesPage === 0}
-                >
+                <button className="consumables-page-button" onClick={() => setConsumablesPage(consumablesPage - 1)} disabled={consumablesPage === 0}>
                     ◀ Назад
                 </button>
-                
-                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
-                
+                {startPage > 0 && <span className="consumables-page-info">...</span>}
                 {pages.map(p => (
-                    <button
-                        key={p}
-                        style={p === consumablesPage ? commonStyles.activePageButton : commonStyles.pageButton}
-                        onClick={() => setConsumablesPage(p)}
-                    >
+                    <button key={p} className={p === consumablesPage ? "consumables-active-page-button" : "consumables-page-button"} onClick={() => setConsumablesPage(p)}>
                         {p + 1}
                     </button>
                 ))}
-                
-                {endPage < consumablesTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setConsumablesPage(consumablesPage + 1)}
-                    disabled={consumablesPage === consumablesTotalPages - 1}
-                >
+                {endPage < consumablesTotalPages - 1 && <span className="consumables-page-info">...</span>}
+                <button className="consumables-page-button" onClick={() => setConsumablesPage(consumablesPage + 1)} disabled={consumablesPage === consumablesTotalPages - 1}>
                     Вперед ▶
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setConsumablesPage(consumablesTotalPages - 1)}
-                    disabled={consumablesPage === consumablesTotalPages - 1}
-                >
+                <button className="consumables-page-button" onClick={() => setConsumablesPage(consumablesTotalPages - 1)} disabled={consumablesPage === consumablesTotalPages - 1}>
                     Последняя ⏩
                 </button>
-                
-                <span style={commonStyles.pageInfo}>
+                <span className="consumables-page-info">
                     Расходники: стр. {consumablesPage + 1} из {consumablesTotalPages} (всего {consumablesTotalElements})
                 </span>
             </div>
@@ -225,89 +194,52 @@ const ConsumablesPage = () => {
         }
         
         return (
-            <div style={commonStyles.pagination}>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setZonesPage(0)}
-                    disabled={zonesPage === 0}
-                >
+            <div className="consumables-pagination">
+                <button className="consumables-page-button" onClick={() => setZonesPage(0)} disabled={zonesPage === 0}>
                     ⏮ Первая
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setZonesPage(zonesPage - 1)}
-                    disabled={zonesPage === 0}
-                >
+                <button className="consumables-page-button" onClick={() => setZonesPage(zonesPage - 1)} disabled={zonesPage === 0}>
                     ◀ Назад
                 </button>
-                
-                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
-                
+                {startPage > 0 && <span className="consumables-page-info">...</span>}
                 {pages.map(p => (
-                    <button
-                        key={p}
-                        style={p === zonesPage ? commonStyles.activePageButton : commonStyles.pageButton}
-                        onClick={() => setZonesPage(p)}
-                    >
+                    <button key={p} className={p === zonesPage ? "consumables-active-page-button" : "consumables-page-button"} onClick={() => setZonesPage(p)}>
                         {p + 1}
                     </button>
                 ))}
-                
-                {endPage < zonesTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setZonesPage(zonesPage + 1)}
-                    disabled={zonesPage === zonesTotalPages - 1}
-                >
+                {endPage < zonesTotalPages - 1 && <span className="consumables-page-info">...</span>}
+                <button className="consumables-page-button" onClick={() => setZonesPage(zonesPage + 1)} disabled={zonesPage === zonesTotalPages - 1}>
                     Вперед ▶
                 </button>
-                <button
-                    style={commonStyles.pageButton}
-                    onClick={() => setZonesPage(zonesTotalPages - 1)}
-                    disabled={zonesPage === zonesTotalPages - 1}
-                >
+                <button className="consumables-page-button" onClick={() => setZonesPage(zonesTotalPages - 1)} disabled={zonesPage === zonesTotalPages - 1}>
                     Последняя ⏩
                 </button>
-                
-                <span style={commonStyles.pageInfo}>
+                <span className="consumables-page-info">
                     Зоны: стр. {zonesPage + 1} из {zonesTotalPages} (всего {zonesTotalElements})
                 </span>
             </div>
         );
     };
 
-    // Объединяем стили
-    const styles = {
-        ...commonStyles,
-        tableWrapper: { overflowX: 'auto' },
-        table: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', minWidth: '500px' },
-        th: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center', backgroundColor: '#f2f2f2' },
-        td: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'center' },
-        firstCol: { border: '1px solid #ddd', padding: '0.75rem', textAlign: 'left', backgroundColor: '#f2f2f2', fontWeight: 'bold' },
-        expenseBtn: { backgroundColor: '#dc3545', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-        exportBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer' },
-    };
-
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Учёт расходных материалов</h1>
+        <div className="consumables-container">
+            <div className="consumables-header">
+                <h1 className="consumables-title">Учёт расходных материалов</h1>
                 <div>
-                    <button style={styles.exportBtn} onClick={() => handleExport('pdf')}>Экспорт PDF</button>
-                    <button style={styles.exportBtn} onClick={() => handleExport('excel')}>Экспорт Excel</button>
+                    <button className="consumables-export-btn" onClick={() => handleExport('pdf')}>Экспорт PDF</button>
+                    <button className="consumables-export-btn" onClick={() => handleExport('excel')}>Экспорт Excel</button>
                 </div>
             </div>
 
-            {error && <div style={styles.error}>{error}</div>}
+            {error && <div className="consumables-error">{error}</div>}
 
-            <div style={styles.formContainer}>
+            <div className="consumables-form-container">
                 <form onSubmit={handleTransaction}>
-                    <div style={styles.formRow}>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Зона</label>
+                    <div className="consumables-form-row">
+                        <div className="consumables-form-group">
+                            <label className="consumables-label">Зона</label>
                             <select
-                                style={styles.select}
+                                className="consumables-select"
                                 value={selectedZone}
                                 onChange={(e) => setSelectedZone(parseInt(e.target.value))}
                                 required
@@ -318,10 +250,10 @@ const ConsumablesPage = () => {
                                 ))}
                             </select>
                         </div>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Расходный материал</label>
+                        <div className="consumables-form-group">
+                            <label className="consumables-label">Расходный материал</label>
                             <select
-                                style={styles.select}
+                                className="consumables-select"
                                 value={selectedConsumable}
                                 onChange={(e) => setSelectedConsumable(parseInt(e.target.value))}
                                 required
@@ -332,22 +264,21 @@ const ConsumablesPage = () => {
                                 ))}
                             </select>
                         </div>
-                        
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Количество</label>
+                        <div className="consumables-form-group">
+                            <label className="consumables-label">Количество</label>
                             <input
                                 type="number"
-                                style={styles.input}
+                                className="consumables-input"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 min="1"
                                 required
                             />
                         </div>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Тип операции</label>
+                        <div className="consumables-form-group">
+                            <label className="consumables-label">Тип операции</label>
                             <select
-                                style={styles.select}
+                                className="consumables-select"
                                 value={transactionType}
                                 onChange={(e) => setTransactionType(e.target.value)}
                             >
@@ -356,7 +287,7 @@ const ConsumablesPage = () => {
                             </select>
                         </div>
                         <div>
-                            <button type="submit" style={transactionType === 'income' ? styles.button : styles.expenseBtn}>
+                            <button type="submit" className={transactionType === 'income' ? "consumables-button" : "consumables-expense-btn"}>
                                 {transactionType === 'income' ? 'Приход' : 'Расход'}
                             </button>
                         </div>
@@ -364,28 +295,30 @@ const ConsumablesPage = () => {
                 </form>
             </div>
 
-            {/* Пагинация для расходников */}
             {renderConsumablesPagination()}
 
             {loading ? (
                 <p>Загрузка...</p>
             ) : (
-                <div style={styles.tableWrapper}>
-                    <table style={styles.table}>
+                <div className="consumables-table-wrapper">
+                    <table className="consumables-table">
                         <thead>
                             <tr>
-                                <th style={styles.th}>Зона / Расходник</th>
+                                {/* ИСПРАВЛЕНИЕ ЗДЕСЬ: Используем класс consumables-first-col для заголовка */}
+                                <th className="consumables-first-col">Зона / Расходник</th>
+                                
                                 {consumables.map(consumable => (
-                                    <th key={consumable.id} style={styles.th}>{consumable.name}</th>
+                                    // Для остальных заголовков можно оставить пустой класс или стандартный th
+                                    <th key={consumable.id}>{consumable.name}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {zones.map(zone => (
                                 <tr key={zone.id}>
-                                    <td style={styles.firstCol}>{zone.name}</td>
+                                    <td className="consumables-first-col">{zone.name}</td>
                                     {consumables.map(consumable => (
-                                        <td key={consumable.id} style={styles.td}>
+                                        <td key={consumable.id} className="consumables-table td">
                                             {getBalance(consumable.id, zone.id)}
                                         </td>
                                     ))}
@@ -396,7 +329,6 @@ const ConsumablesPage = () => {
                 </div>
             )}
             
-            {/* Пагинация для зон */}
             {renderZonesPagination()}
         </div>
     );

@@ -1,0 +1,195 @@
+.request-buy-container {
+    padding: 2rem;
+}
+
+.request-buy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.request-buy-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.request-buy-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.request-buy-success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.request-buy-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.request-buy-form-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    margin-bottom: 2rem;
+}
+
+.request-buy-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.request-buy-form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.request-buy-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.request-buy-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.request-buy-input-error {
+    border-color: #dc3545;
+}
+
+.request-buy-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.request-buy-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.request-buy-table th {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #f2f2f2;
+}
+
+.request-buy-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+}
+
+.request-buy-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: white;
+}
+
+.request-buy-status-v-rossmotrenii {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.request-buy-status-odobrena {
+    background-color: #28a745;
+}
+
+.request-buy-status-otklonena {
+    background-color: #dc3545;
+}
+
+.request-buy-status-vipolnena {
+    background-color: #17a2b8;
+}
+
+.request-buy-status-select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    min-width: 130px;
+    font-size: 0.875rem;
+}
+
+.request-buy-validation-error {
+    color: #dc3545;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.request-buy-td-with-wrap {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+    word-wrap: break-word;
+    white-space: normal;
+    word-break: break-word;
+    max-width: 300px;
+    min-width: 150px;
+}
+
+.request-buy-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.request-buy-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.request-buy-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.request-buy-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.request-buy-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}

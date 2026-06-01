@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { inventarizationService } from '../services/inventarizationService';
 import { zoneService } from '../services/zoneService';
 import { equipmentService } from '../services/equipmentService';
-import { commonStyles } from '../styles/globalStyles';
+import './InventarizationPage.css';
 
 const InventarizationPage = () => {
     const [zones, setZones] = useState([]);
@@ -12,9 +12,14 @@ const InventarizationPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedZone, setSelectedZone] = useState('');
-    const [reports, setReports] = useState([]); // История инвентаризаций
+    const [reports, setReports] = useState([]);
     const [inProgress, setInProgress] = useState(false);
     const [isAllMode, setIsAllMode] = useState(false);
+    
+    const [historyPage, setHistoryPage] = useState(0);
+    const [historyTotalPages, setHistoryTotalPages] = useState(0);
+    const [historyTotalElements, setHistoryTotalElements] = useState(0);
+    const [historyPageSize] = useState(10);
 
     const loadZones = async () => {
         try {
@@ -34,10 +39,13 @@ const InventarizationPage = () => {
         }
     };
 
-    const loadHistory = async () => {
+    const loadHistory = async (page = historyPage) => {
         try {
-            const response = await inventarizationService.getHistory();
-            setReports(response.data);
+            const response = await inventarizationService.getHistory(page, historyPageSize);
+            setReports(response.data.content);
+            setHistoryTotalPages(response.data.totalPages);
+            setHistoryTotalElements(response.data.totalElements);
+            setHistoryPage(response.data.number);
         } catch (err) {
             console.error('Ошибка загрузки истории:', err);
         }
@@ -46,7 +54,7 @@ const InventarizationPage = () => {
     useEffect(() => {
         loadZones();
         loadEquipment();
-        loadHistory(); // Загружаем историю при загрузке страницы
+        loadHistory(0);
     }, []);
 
     const handleStart = async () => {
@@ -124,17 +132,16 @@ const InventarizationPage = () => {
     const handleFinish = async () => {
         setLoading(true);
         try {
-            let response;
             if (isAllMode) {
-                response = await inventarizationService.finishAll();
+                await inventarizationService.finishAll();
             } else {
-                response = await inventarizationService.finish(selectedZone);
+                await inventarizationService.finish(selectedZone);
             }
-            // Обновляем историю после завершения
-            await loadHistory();
+            await loadHistory(0);
             setInProgress(false);
             setInventarizations([]);
             setGroupedInventarizations([]);
+            setHistoryPage(0);
         } catch (err) {
             setError(err.response?.data?.message || 'Ошибка завершения инвентаризации');
         } finally {
@@ -182,44 +189,80 @@ const InventarizationPage = () => {
     const remainingCount = getRemainingCount();
     const totalCount = getTotalCount();
 
-    const styles = {
-        ...commonStyles,
-        zoneGroup: { marginTop: '1.5rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px', fontWeight: 'bold' },
-        subTable: { width: '100%', borderCollapse: 'collapse', backgroundColor: 'white', marginBottom: '1rem' },
-        input: { width: '100px', padding: '0.25rem', border: '1px solid #ccc', borderRadius: '4px' },
-        progressBar: { marginTop: '1rem', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#e9ecef', borderRadius: '4px' },
-        reportContainer: { marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', marginBottom: '1rem' },
-        reportsContainer: { marginTop: '2rem' },
-        historyTitle: { marginTop: '2rem', marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 'bold' },
-        buttonGroup: { display: 'flex', gap: '1rem', alignItems: 'flex-end' },
-        reportHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' },
-        reportDate: { fontSize: '0.85rem', color: '#6c757d' },
+    const handleHistoryPageChange = (newPage) => {
+        if (newPage >= 0 && newPage < historyTotalPages) {
+            loadHistory(newPage);
+        }
+    };
+
+    const renderHistoryPagination = () => {
+        if (historyTotalPages <= 1) return null;
+        
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(0, historyPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(historyTotalPages - 1, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(0, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        
+        return (
+            <div className="inventarization-pagination">
+                <button className="inventarization-page-button" onClick={() => handleHistoryPageChange(0)} disabled={historyPage === 0}>
+                    ⏮ Первая
+                </button>
+                <button className="inventarization-page-button" onClick={() => handleHistoryPageChange(historyPage - 1)} disabled={historyPage === 0}>
+                    ◀ Назад
+                </button>
+                {startPage > 0 && <span className="inventarization-page-info">...</span>}
+                {pages.map(p => (
+                    <button key={p} className={p === historyPage ? "inventarization-active-page-button" : "inventarization-page-button"} onClick={() => handleHistoryPageChange(p)}>
+                        {p + 1}
+                    </button>
+                ))}
+                {endPage < historyTotalPages - 1 && <span className="inventarization-page-info">...</span>}
+                <button className="inventarization-page-button" onClick={() => handleHistoryPageChange(historyPage + 1)} disabled={historyPage === historyTotalPages - 1}>
+                    Вперед ▶
+                </button>
+                <button className="inventarization-page-button" onClick={() => handleHistoryPageChange(historyTotalPages - 1)} disabled={historyPage === historyTotalPages - 1}>
+                    Последняя ⏩
+                </button>
+                <span className="inventarization-page-info">
+                    Страница {historyPage + 1} из {historyTotalPages} (всего {historyTotalElements} записей)
+                </span>
+            </div>
+        );
     };
 
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Инвентаризация оборудования</h1>
+        <div className="inventarization-container">
+            <div className="inventarization-header">
+                <h1 className="inventarization-title">Инвентаризация оборудования</h1>
             </div>
 
-            {error && <div style={styles.error}>{error}</div>}
+            {error && <div className="inventarization-error">{error}</div>}
 
             {!inProgress && (
-                <div style={styles.formContainer}>
+                <div className="inventarization-form-container">
                     <h3>Начать новую инвентаризацию</h3>
-                    <div style={styles.formRow}>
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Зона (для частичной инвентаризации)</label>
-                            <select style={styles.select} value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)}>
+                    <div className="inventarization-form-row">
+                        <div className="inventarization-form-group">
+                            <label className="inventarization-label">Зона (для частичной инвентаризации)</label>
+                            <select className="inventarization-select" value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)}>
                                 <option value="">Выберите зону</option>
                                 {zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}</option>)}
                             </select>
                         </div>
-                        <div style={styles.buttonGroup}>
-                            <button style={styles.button} onClick={handleStart} disabled={!selectedZone || loading}>
+                        <div className="inventarization-button-group">
+                            <button className="inventarization-button" onClick={handleStart} disabled={!selectedZone || loading}>
                                 {loading ? 'Загрузка...' : 'По зоне'}
                             </button>
-                            <button style={styles.successBtn} onClick={handleStartAll} disabled={loading}>
+                            <button className="inventarization-success-btn" onClick={handleStartAll} disabled={loading}>
                                 {loading ? 'Загрузка...' : 'По всему оборудованию'}
                             </button>
                         </div>
@@ -229,7 +272,7 @@ const InventarizationPage = () => {
 
             {inProgress && totalCount > 0 && (
                 <>
-                    <div style={styles.progressBar}>
+                    <div className="inventarization-progress-bar">
                         <strong>Прогресс:</strong> {totalCount - remainingCount} из {totalCount} проверено
                     </div>
 
@@ -237,28 +280,28 @@ const InventarizationPage = () => {
                     
                     {!isAllMode && (
                         <div style={{ overflowX: 'auto' }}>
-                            <table style={styles.table}>
+                            <table className="inventarization-table">
                                 <thead>
                                     <tr>
-                                        <th style={styles.th}>Инв. номер</th>
-                                        <th style={styles.th}>Оборудование</th>
-                                        <th style={styles.th}>Ожидаемое количество</th>
-                                        <th style={styles.th}>Фактическое количество</th>
+                                        <th>Инв. номер</th>
+                                        <th>Оборудование</th>
+                                        <th>Ожидаемое количество</th>
+                                        <th>Фактическое количество</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {inventarizations.map((inv) => (
                                         <tr key={inv.id}>
-                                            <td style={styles.td}>{inv.equipmentInventoryNumber}</td>
-                                            <td style={styles.td}>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
-                                            <td style={styles.td}>{inv.count}</td>
-                                            <td style={styles.td}>
+                                            <td>{inv.equipmentInventoryNumber}</td>
+                                            <td>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
+                                            <td>{inv.count}</td>
+                                            <td>
                                                 {inv.realCount !== null && inv.realCount !== undefined ? (
                                                     inv.realCount
                                                 ) : (
                                                     <input
                                                         type="number"
-                                                        style={styles.input}
+                                                        className="inventarization-input"
                                                         min="0"
                                                         placeholder="Введите"
                                                         onBlur={(e) => handlePerformStep(inv.id, parseInt(e.target.value))}
@@ -274,32 +317,32 @@ const InventarizationPage = () => {
 
                     {isAllMode && groupedInventarizations.map((group) => (
                         <div key={group.zoneId}>
-                            <div style={styles.zoneGroup}>
+                            <div className="inventarization-zone-group">
                                 Зона: {group.zoneName || `ID: ${group.zoneId}`}
                             </div>
                             <div style={{ overflowX: 'auto' }}>
-                                <table style={styles.subTable}>
+                                <table className="inventarization-sub-table">
                                     <thead>
                                         <tr>
-                                            <th style={styles.th}>Инв. номер</th>
-                                            <th style={styles.th}>Оборудование</th>
-                                            <th style={styles.th}>Ожидаемое количество</th>
-                                            <th style={styles.th}>Фактическое количество</th>
+                                            <th>Инв. номер</th>
+                                            <th>Оборудование</th>
+                                            <th>Ожидаемое количество</th>
+                                            <th>Фактическое количество</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {group.items && group.items.map((inv) => (
                                             <tr key={inv.equipmentInventoryNumber}>
-                                                <td style={styles.td}>{inv.equipmentInventoryNumber}</td>
-                                                <td style={styles.td}>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
-                                                <td style={styles.td}>{inv.count}</td>
-                                                <td style={styles.td}>
+                                                <td>{inv.equipmentInventoryNumber}</td>
+                                                <td>{getEquipmentName(inv.equipmentInventoryNumber)}</td>
+                                                <td>{inv.count}</td>
+                                                <td>
                                                     {inv.realCount !== null && inv.realCount !== undefined ? (
                                                         inv.realCount
                                                     ) : (
                                                         <input
                                                             type="number"
-                                                            style={styles.input}
+                                                            className="inventarization-input"
                                                             min="0"
                                                             placeholder="Введите"
                                                             onBlur={(e) => handlePerformStep(inv.id, parseInt(e.target.value))}
@@ -316,7 +359,7 @@ const InventarizationPage = () => {
 
                     {remainingCount === 0 && (
                         <div style={{ marginTop: '1rem' }}>
-                            <button style={styles.successBtn} onClick={handleFinish}>
+                            <button className="inventarization-success-btn" onClick={handleFinish}>
                                 Завершить инвентаризацию
                             </button>
                         </div>
@@ -324,38 +367,53 @@ const InventarizationPage = () => {
                 </>
             )}
 
-            {/* История инвентаризаций */}
-            <div style={styles.reportsContainer}>
-                <h2 style={styles.historyTitle}>История инвентаризаций</h2>
-                {reports.length === 0 ? (
-                    <div style={styles.emptyMessage}>
-                        Нет завершённых инвентаризаций
-                    </div>
-                ) : (
-                    reports.map((report, idx) => (
-                        <div key={idx} style={styles.reportContainer}>
-                            <div style={styles.reportHeader}>
-                                <strong>Инвентаризация #{reports.length - idx}</strong>
-                                <span style={styles.reportDate}>Дата: {report.date}</span>
-                            </div>
-                            <p><strong>Зона:</strong> {getZoneName(report.zoneId)}</p>
-                            <p><strong>Проверено единиц:</strong> {report.totalScanned}</p>
-                            {report.discrepancies && report.discrepancies.length > 0 ? (
-                                <>
-                                    <strong>Расхождения:</strong>
-                                    <ul>
-                                        {report.discrepancies.map((d, i) => (
-                                            <li key={i}>{d}</li>
-                                        ))}
-                                    </ul>
-                                </>
-                            ) : (
-                                <p style={{ color: '#28a745' }}>✅ Расхождений не обнаружено</p>
-                            )}
+            {/* ... внутри return ... */}
+            {!inProgress && (
+                <div>
+                    <h2 className="inventarization-history-title">История инвентаризаций</h2>
+                    {reports.length === 0 ? (
+                        <div className="inventarization-empty-message">
+                            Нет завершённых инвентаризаций
                         </div>
-                    ))
-                )}
-            </div>
+                    ) : (
+                        <>
+                            <table className="inventarization-table">
+                                <thead>
+                                    <tr>
+                                        <th>№</th>
+                                        <th>Дата</th>
+                                        <th>Зона</th>
+                                        <th>Проверено единиц</th>
+                                        <th>Расхождения</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reports.map((report, idx) => (
+                                        <tr key={report.sessionId || idx}> {/* Используем sessionId как ключ */}
+                                            <td>{(historyPage * historyPageSize) + idx + 1}</td>
+                                            <td>{report.date}</td>
+                                            <td>{report.zoneName || getZoneName(report.zoneId)}</td> {/* Используем zoneName из отчета */}
+                                            <td>{report.totalScanned}</td>
+                                            <td>
+                                                {report.discrepancies && report.discrepancies.length > 0 ? (
+                                                    <ul style={{ margin: 0, paddingLeft: '1rem' }}>
+                                                        {report.discrepancies.map((d, i) => (
+                                                            <li key={i}>{d}</li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <span style={{ color: '#28a745' }}>Нет расхождений</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {renderHistoryPagination()}
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { equipmentService } from '../services/equipmentService';
 import { zoneService } from '../services/zoneService';
-import { commonStyles } from '../styles/globalStyles';
+import './EquipmentPage.css';
 
 const EquipmentPage = () => {
     const [equipment, setEquipment] = useState([]);
@@ -171,7 +171,6 @@ const EquipmentPage = () => {
     };
 
     const getInputStyle = (fieldName) => ({
-        ...styles.input,
         borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
     });
 
@@ -198,77 +197,68 @@ const EquipmentPage = () => {
         }
         
         return (
-            <div style={commonStyles.pagination}>
-                <button style={commonStyles.pageButton} onClick={() => handlePageChange(0)} disabled={page === 0}>
+            <div className="equipment-pagination">
+                <button className="equipment-page-button" onClick={() => handlePageChange(0)} disabled={page === 0}>
                     ⏮ Первая
                 </button>
-                <button style={commonStyles.pageButton} onClick={() => handlePageChange(page - 1)} disabled={page === 0}>
+                <button className="equipment-page-button" onClick={() => handlePageChange(page - 1)} disabled={page === 0}>
                     ◀ Назад
                 </button>
-                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+                {startPage > 0 && <span className="equipment-page-info">...</span>}
                 {pages.map(p => (
-                    <button key={p} style={p === page ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => handlePageChange(p)}>
+                    <button key={p} className={p === page ? "equipment-active-page-button" : "equipment-page-button"} onClick={() => handlePageChange(p)}>
                         {p + 1}
                     </button>
                 ))}
-                {endPage < totalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                <button style={commonStyles.pageButton} onClick={() => handlePageChange(page + 1)} disabled={page === totalPages - 1}>
+                {endPage < totalPages - 1 && <span className="equipment-page-info">...</span>}
+                <button className="equipment-page-button" onClick={() => handlePageChange(page + 1)} disabled={page === totalPages - 1}>
                     Вперед ▶
                 </button>
-                <button style={commonStyles.pageButton} onClick={() => handlePageChange(totalPages - 1)} disabled={page === totalPages - 1}>
+                <button className="equipment-page-button" onClick={() => handlePageChange(totalPages - 1)} disabled={page === totalPages - 1}>
                     Последняя ⏩
                 </button>
-                <span style={commonStyles.pageInfo}>
+                <span className="equipment-page-info">
                     Страница {page + 1} из {totalPages} (всего {totalElements} записей)
                 </span>
             </div>
         );
     };
 
-    const styles = {
-        ...commonStyles,
-        filterContainer: {
-            display: 'flex',
-            gap: '1rem',
-            alignItems: 'flex-end',
-            marginBottom: '1.5rem',
-            flexWrap: 'wrap',
-            padding: '1rem',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-        },
-        filterGroup: { flex: 1, minWidth: '150px' },
-        filterLabel: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
-        filterSelect: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        resetBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', height: '38px' },
-        statusBadge: (status) => ({
-            display: 'inline-block',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontSize: '0.875rem',
-            backgroundColor: status === 'Списано' ? '#dc3545' : status === 'На ремонте' ? '#ffc107' : status === 'Сломано' ? '#fd7e14' : '#28a745',
-            color: 'white',
-        }),
-    };
+    const getStatusBadgeClass = (status) => {
+    switch(status) {
+        case 'Списано':
+            return 'equipment-status-badge equipment-status-badge-spisano';
+        case 'На ремонте':
+            return 'equipment-status-badge equipment-status-badge-remont';
+        case 'Сломано':
+            return 'equipment-status-badge equipment-status-badge-slomano';
+        case 'Новое':
+            return 'equipment-status-badge equipment-status-badge-novoe';
+        case 'В работе':
+            return 'equipment-status-badge equipment-status-badge-work';
+        default:
+            return 'equipment-status-badge';
+    }
+};
 
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Управление оборудованием</h1>
+        <div className="equipment-container">
+            <div className="equipment-header">
+                <h1 className="equipment-title">Управление оборудованием</h1>
                 {!showForm && (
-                    <button style={styles.button} onClick={() => setShowForm(true)}>
+                    <button className="equipment-button" onClick={() => setShowForm(true)}>
                         + Добавить оборудование
                     </button>
                 )}
             </div>
 
-            {error && <div style={styles.error}>{error}</div>}
+            {error && <div className="equipment-error">{error}</div>}
 
-            <div style={styles.filterContainer}>
-                <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Фильтр по зоне</label>
+            <div className="equipment-filter-container">
+                <div className="equipment-filter-group">
+                    <label className="equipment-filter-label">Фильтр по зоне</label>
                     <select
-                        style={styles.filterSelect}
+                        className="equipment-filter-select"
                         value={filterZone}
                         onChange={(e) => {
                             setFilterZone(e.target.value);
@@ -281,10 +271,10 @@ const EquipmentPage = () => {
                         ))}
                     </select>
                 </div>
-                <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Фильтр по статусу</label>
+                <div className="equipment-filter-group">
+                    <label className="equipment-filter-label">Фильтр по статусу</label>
                     <select
-                        style={styles.filterSelect}
+                        className="equipment-filter-select"
                         value={filterStatus}
                         onChange={(e) => {
                             setFilterStatus(e.target.value);
@@ -300,24 +290,25 @@ const EquipmentPage = () => {
                     </select>
                 </div>
                 <div>
-                    <button style={styles.resetBtn} onClick={resetFilters}>
+                    <button className="equipment-reset-btn" onClick={resetFilters}>
                         Сбросить фильтры
                     </button>
                 </div>
             </div>
 
             {showForm && (
-                <div style={styles.formContainer}>
+                <div className="equipment-form-container">
                     <h3>{isEditing ? 'Редактирование оборудования' : 'Новое оборудование'}</h3>
                     <form onSubmit={handleSubmit}>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Зона *</label>
+                        <div className="equipment-form-row">
+                            <div className="equipment-form-group">
+                                <label className="equipment-label">Зона *</label>
                                 <select
+                                    className="equipment-select"
+                                    style={getInputStyle('zoneId')}
                                     value={formData.zoneId}
                                     onChange={(e) => setFormData({ ...formData, zoneId: e.target.value })}
                                     required
-                                    style={getInputStyle('zoneId')}
                                 >
                                     <option value="">Выберите зону</option>
                                     {zones.map(zone => (
@@ -325,31 +316,32 @@ const EquipmentPage = () => {
                                     ))}
                                 </select>
                                 {validationErrors.zoneId && (
-                                    <div style={getErrorStyle()}>{validationErrors.zoneId}</div>
+                                    <div className="equipment-validation-error">{validationErrors.zoneId}</div>
                                 )}
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Название оборудования *</label>
+                            <div className="equipment-form-group">
+                                <label className="equipment-label">Название оборудования *</label>
                                 <input
                                     type="text"
                                     placeholder="Введите название (2-50 символов)"
+                                    className="equipment-input"
+                                    style={getInputStyle('name')}
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     required
-                                    style={getInputStyle('name')}
                                 />
                                 {validationErrors.name && (
-                                    <div style={getErrorStyle()}>{validationErrors.name}</div>
+                                    <div className="equipment-validation-error">{validationErrors.name}</div>
                                 )}
                             </div>
                         </div>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Статус</label>
+                        <div className="equipment-form-row">
+                            <div className="equipment-form-group">
+                                <label className="equipment-label">Статус</label>
                                 <select
+                                    className="equipment-select"
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                    style={styles.select}
                                 >
                                     <option value="Новое">Новое</option>
                                     <option value="В работе">В работе</option>
@@ -358,25 +350,26 @@ const EquipmentPage = () => {
                                     <option value="Списано">Списано</option>
                                 </select>
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Дата покупки *</label>
+                            <div className="equipment-form-group">
+                                <label className="equipment-label">Дата покупки *</label>
                                 <input
                                     type="date"
+                                    className="equipment-input"
+                                    style={getInputStyle('dataBuy')}
                                     value={formData.dataBuy}
                                     onChange={(e) => setFormData({ ...formData, dataBuy: e.target.value })}
                                     required
-                                    style={getInputStyle('dataBuy')}
                                 />
                                 {validationErrors.dataBuy && (
-                                    <div style={getErrorStyle()}>{validationErrors.dataBuy}</div>
+                                    <div className="equipment-validation-error">{validationErrors.dataBuy}</div>
                                 )}
                             </div>
                         </div>
                         <div>
-                            <button type="submit" style={styles.button}>
+                            <button type="submit" className="equipment-button">
                                 {isEditing ? 'Обновить' : 'Сохранить'}
                             </button>
-                            <button type="button" style={styles.cancelBtn} onClick={resetForm}>
+                            <button type="button" className="equipment-cancel-btn" onClick={resetForm}>
                                 Отмена
                             </button>
                         </div>
@@ -388,32 +381,32 @@ const EquipmentPage = () => {
                 <p>Загрузка...</p>
             ) : (
                 <>
-                    <table style={styles.table}>
+                    <table className="equipment-table">
                         <thead>
                             <tr>
-                                <th style={styles.th}>Инв. номер</th>
-                                <th style={styles.th}>Название</th>
-                                <th style={styles.th}>Зона</th>
-                                <th style={styles.th}>Статус</th>
-                                <th style={styles.th}>Дата покупки</th>
-                                <th style={styles.th}>Действия</th>
+                                <th>Инв. номер</th>
+                                <th>Название</th>
+                                <th>Зона</th>
+                                <th>Статус</th>
+                                <th>Дата покупки</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
                             {equipment.map((item) => (
                                 <tr key={item.id}>
-                                    <td style={styles.td}>{item.id}</td>
-                                    <td style={styles.td}>{item.name}</td>
-                                    <td style={styles.td}>{getZoneName(item.zoneId)}</td>
-                                    <td style={styles.td}>
-                                        <span style={styles.statusBadge(item.status)}>{item.status}</span>
+                                    <td>{item.id}</td>
+                                    <td>{item.name}</td>
+                                    <td>{getZoneName(item.zoneId)}</td>
+                                    <td>
+                                        <span className={getStatusBadgeClass(item.status)}>{item.status}</span>
                                     </td>
-                                    <td style={styles.td}>{item.dataBuy}</td>
-                                    <td style={styles.td}>
-                                        <button style={styles.editBtn} onClick={() => handleEdit(item)}>
+                                    <td>{item.dataBuy}</td>
+                                    <td>
+                                        <button className="equipment-edit-btn" onClick={() => handleEdit(item)}>
                                             Изменить
                                         </button>
-                                        <button style={styles.deleteBtn} onClick={() => handleDelete(item.id)}>
+                                        <button className="equipment-delete-btn" onClick={() => handleDelete(item.id)}>
                                             Удалить
                                         </button>
                                     </td>
@@ -424,7 +417,7 @@ const EquipmentPage = () => {
                     
                     {renderPagination()}
                     
-                    <div style={styles.countInfo}>
+                    <div className="equipment-count-info">
                         Всего: {totalElements} единиц оборудования
                     </div>
                 </>

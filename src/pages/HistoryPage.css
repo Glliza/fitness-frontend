@@ -1,0 +1,136 @@
+.history-container {
+    padding: 2rem;
+}
+
+.history-title {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.history-filter-container {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.history-filter-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.history-filter-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.history-filter-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.history-filter-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.history-filter-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.history-reset-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 38px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-top: 1rem;
+}
+
+.history-table th {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #f2f2f2;
+}
+
+.history-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    vertical-align: top;
+}
+
+.history-empty-message {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.history-count-info {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.history-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.history-status-badge-vipolnena {
+    background-color: #28a745;
+    color: white;
+}
+
+.history-status-badge-zaplanirovano {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.history-status-badge-otkrita {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.history-status-badge-vrabote {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.history-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+}
+
+.history-type-badge-to {
+    background-color: #007bff;
+}
+
+.history-type-badge-repair {
+    background-color: #dc3545;
+}

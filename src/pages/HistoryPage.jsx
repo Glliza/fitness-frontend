@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { maintenanceService } from '../services/maintenanceService';
 import { equipmentService } from '../services/equipmentService';
-import { commonStyles } from '../styles/globalStyles';
+import './HistoryPage.css';
 
 const HistoryPage = () => {
     const [equipment, setEquipment] = useState([]);
@@ -9,7 +9,6 @@ const HistoryPage = () => {
     const [allRequests, setAllRequests] = useState([]);
     const [filteredHistory, setFilteredHistory] = useState([]);
     
-    // Фильтры
     const [filterEquipment, setFilterEquipment] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [startDate, setStartDate] = useState('');
@@ -17,15 +16,12 @@ const HistoryPage = () => {
     
     const [loading, setLoading] = useState(true);
 
-    // Загрузка всех данных
     const loadData = async () => {
         setLoading(true);
         try {
-            // Загружаем оборудование (все записи, без пагинации)
             const equipmentRes = await equipmentService.getAll(0, 100);
             const equipmentList = equipmentRes.data.content || [];
             
-            // Загружаем ТО и заявки (без пагинации, все записи)
             const [toRes, requestsRes] = await Promise.all([
                 maintenanceService.getAllTO(0, 1000),
                 maintenanceService.getAllRequests(0, 1000)
@@ -38,7 +34,6 @@ const HistoryPage = () => {
             setAllTO(toList);
             setAllRequests(reqList);
             
-            // Применяем фильтры после загрузки
             applyFilters(toList, reqList, equipmentList);
         } catch (err) {
             console.error('Ошибка загрузки данных:', err);
@@ -47,11 +42,9 @@ const HistoryPage = () => {
         }
     };
 
-    // Применение фильтров
     const applyFilters = (toList, reqList, equipList, equipFilter = filterEquipment, typeFilter = filterType, start = startDate, end = endDate) => {
         let events = [];
         
-        // Добавляем ТО
         toList.forEach(to => {
             const equipmentName = equipList.find(e => e.id === to.equipmentId)?.name || 'Неизвестно';
             
@@ -70,7 +63,6 @@ const HistoryPage = () => {
             });
         });
         
-        // Добавляем заявки на ремонт
         reqList.forEach(req => {
             const equipmentName = equipList.find(e => e.id === req.equipmentInventoryNumber)?.name || 'Неизвестно';
             
@@ -88,19 +80,16 @@ const HistoryPage = () => {
             });
         });
         
-        // Фильтр по оборудованию
         if (equipFilter) {
             events = events.filter(e => e.equipmentId === parseInt(equipFilter));
         }
         
-        // Фильтр по типу события
         if (typeFilter === 'to') {
             events = events.filter(e => e.source === 'to');
         } else if (typeFilter === 'repair') {
             events = events.filter(e => e.source === 'repair');
         }
         
-        // Фильтр по дате
         if (start) {
             events = events.filter(e => e.date && e.date >= start);
         }
@@ -108,7 +97,6 @@ const HistoryPage = () => {
             events = events.filter(e => e.date && e.date <= end);
         }
         
-        // Сортируем по дате (сначала новые)
         events.sort((a, b) => {
             if (!a.date) return 1;
             if (!b.date) return -1;
@@ -118,7 +106,6 @@ const HistoryPage = () => {
         setFilteredHistory(events);
     };
 
-    // При изменении фильтров
     useEffect(() => {
         applyFilters(allTO, allRequests, equipment, filterEquipment, filterType, startDate, endDate);
     }, [filterEquipment, filterType, startDate, endDate, allTO, allRequests, equipment]);
@@ -134,51 +121,30 @@ const HistoryPage = () => {
         setEndDate('');
     };
 
-    const getStatusBadgeStyle = (status) => {
+    const getStatusBadgeClass = (status) => {
         switch(status) {
-            case 'Выполнена': return { backgroundColor: '#28a745', color: 'white' };
-            case 'Запланировано': return { backgroundColor: '#ffc107', color: '#333' };
-            case 'Открыта': return { backgroundColor: '#fd7e14', color: 'white' };
-            case 'В работе': return { backgroundColor: '#17a2b8', color: 'white' };
-            default: return { backgroundColor: '#6c757d', color: 'white' };
+            case 'Выполнена': return 'history-status-badge-vipolnena';
+            case 'Запланировано': return 'history-status-badge-zaplanirovano';
+            case 'Открыта': return 'history-status-badge-otkrita';
+            case 'В работе': return 'history-status-badge-vrabote';
+            default: return '';
         }
     };
 
-    const styles = {
-        ...commonStyles,
-        filterContainer: { padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '2rem' },
-        filterGroup: { flex: 1, minWidth: '150px' },
-        filterLabel: { display: 'block', marginBottom: '0.25rem', fontWeight: 'bold', fontSize: '0.875rem' },
-        filterSelect: { width: '100%', padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' },
-        resetBtn: { backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', height: '38px' },
-        statusBadge: (status) => ({
-            display: 'inline-block',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            ...getStatusBadgeStyle(status)
-        }),
-        typeBadge: (type) => ({
-            display: 'inline-block',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            backgroundColor: type === 'ТО' ? '#007bff' : '#dc3545',
-            color: 'white'
-        }),
+    const getTypeBadgeClass = (type) => {
+        return type === 'ТО' ? 'history-type-badge-to' : 'history-type-badge-repair';
     };
 
     return (
-        <div style={styles.container}>
-            <h1 style={styles.title}>История обслуживания</h1>
+        <div className="history-container">
+            <h1 className="history-title">История обслуживания</h1>
             
-            {/* Блок фильтров */}
-            <div style={styles.filterContainer}>
-                <div style={styles.formRow}>
-                    <div style={styles.filterGroup}>
-                        <label style={styles.filterLabel}>Оборудование</label>
+            <div className="history-filter-container">
+                <div className="history-filter-row">
+                    <div className="history-filter-group">
+                        <label className="history-filter-label">Оборудование</label>
                         <select 
-                            style={styles.filterSelect} 
+                            className="history-filter-select" 
                             value={filterEquipment} 
                             onChange={(e) => setFilterEquipment(e.target.value)}
                         >
@@ -190,10 +156,10 @@ const HistoryPage = () => {
                             ))}
                         </select>
                     </div>
-                    <div style={styles.filterGroup}>
-                        <label style={styles.filterLabel}>Тип события</label>
+                    <div className="history-filter-group">
+                        <label className="history-filter-label">Тип события</label>
                         <select 
-                            style={styles.filterSelect} 
+                            className="history-filter-select" 
                             value={filterType} 
                             onChange={(e) => setFilterType(e.target.value)}
                         >
@@ -202,62 +168,61 @@ const HistoryPage = () => {
                             <option value="repair">Только ремонты</option>
                         </select>
                     </div>
-                    <div style={styles.filterGroup}>
-                        <label style={styles.filterLabel}>Дата от</label>
+                    <div className="history-filter-group">
+                        <label className="history-filter-label">Дата от</label>
                         <input 
                             type="date" 
-                            style={styles.input} 
+                            className="history-filter-input" 
                             value={startDate} 
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </div>
-                    <div style={styles.filterGroup}>
-                        <label style={styles.filterLabel}>Дата до</label>
+                    <div className="history-filter-group">
+                        <label className="history-filter-label">Дата до</label>
                         <input 
                             type="date" 
-                            style={styles.input} 
+                            className="history-filter-input" 
                             value={endDate} 
                             onChange={(e) => setEndDate(e.target.value)}
                         />
                     </div>
                     <div>
-                        <button style={styles.resetBtn} onClick={resetFilters}>Сбросить фильтры</button>
+                        <button className="history-reset-btn" onClick={resetFilters}>Сбросить фильтры</button>
                     </div>
                 </div>
             </div>
 
-            {/* Таблица с историей */}
             {loading ? (
                 <p>Загрузка...</p>
             ) : filteredHistory.length === 0 ? (
-                <div style={styles.emptyMessage}>
+                <div className="history-empty-message">
                     Нет записей по выбранным фильтрам
                 </div>
             ) : (
                 <>
-                    <table style={styles.table}>
+                    <table className="history-table">
                         <thead>
                             <tr>
-                                <th style={styles.th}>Тип</th>
-                                <th style={styles.th}>Оборудование</th>
-                                <th style={styles.th}>Описание</th>
-                                <th style={styles.th}>Дата</th>
-                                <th style={styles.th}>Статус</th>
+                                <th>Тип</th>
+                                <th>Оборудование</th>
+                                <th>Описание</th>
+                                <th>Дата</th>
+                                <th>Статус</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredHistory.map((item, idx) => (
                                 <tr key={`${item.source}_${item.id}_${idx}`}>
-                                    <td style={styles.td}>
-                                        <span style={styles.typeBadge(item.type)}>{item.type}</span>
+                                    <td>
+                                        <span className={`history-type-badge ${getTypeBadgeClass(item.type)}`}>{item.type}</span>
                                         {item.subType && <div style={{ fontSize: '0.7rem', marginTop: '2px' }}>{item.subType}</div>}
                                     </td>
-                                    <td style={styles.td}>
+                                    <td>
                                         {item.equipmentName}
                                         <div style={{ fontSize: '0.7rem', color: '#666' }}>№{item.equipmentId}</div>
                                     </td>
-                                    <td style={styles.td}>{item.description || '-'}</td>
-                                    <td style={styles.td}>
+                                    <td>{item.description || '-'}</td>
+                                    <td>
                                         {item.date || '-'}
                                         {item.plannedDate && item.completedDate && (
                                             <div style={{ fontSize: '0.7rem', color: '#666' }}>
@@ -266,14 +231,14 @@ const HistoryPage = () => {
                                             </div>
                                         )}
                                     </td>
-                                    <td style={styles.td}>
-                                        <span style={styles.statusBadge(item.status)}>{item.status || '-'}</span>
+                                    <td>
+                                        <span className={`history-status-badge ${getStatusBadgeClass(item.status)}`}>{item.status || '-'}</span>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    <div style={styles.countInfo}>
+                    <div className="history-count-info">
                         Всего записей: {filteredHistory.length}
                     </div>
                 </>

@@ -1,0 +1,195 @@
+.consumables-container {
+    padding: 2rem;
+}
+
+.consumables-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.consumables-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.consumables-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.consumables-form-container {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    margin-bottom: 2rem;
+}
+
+.consumables-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.consumables-form-group {
+    flex: 1;
+    min-width: 120px;
+}
+
+.consumables-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.consumables-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.consumables-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.consumables-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.consumables-expense-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.consumables-export-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.consumables-table-wrapper {
+    overflow-x: auto;
+}
+
+.consumables-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    table-layout: fixed;
+}
+
+/* Первая колонка (Зона / Расходник) - шире */
+.consumables-table th:first-child,
+.consumables-table td:first-child {
+    width: 200px;
+    min-width: 150px;
+    max-width: 200px;
+}
+
+/* Остальные колонки (Полотенца, Вода, Салфетки) - одинаковой ширины */
+.consumables-table th:not(:first-child),
+.consumables-table td:not(:first-child) {
+    width: 200px;
+    min-width: 30px;
+}
+
+.consumables-table th {
+    border: 1px solid #ddd;
+    padding: 0.6rem 0.3rem;
+    text-align: center;
+    background-color: #f2f2f2;
+    font-size: 0.8rem;
+    font-weight: bold;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.consumables-table td {
+    border: 1px solid #ddd;
+    padding: 0.6rem 0.3rem;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.consumables-first-col {
+    border: 1px solid #ddd;
+    padding: 0.6rem 0.3rem;
+    text-align: left;
+    background-color: #f2f2f2;
+    font-weight: bold;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.consumables-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.consumables-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.consumables-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.consumables-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.consumables-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+

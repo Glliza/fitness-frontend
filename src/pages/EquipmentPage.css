@@ -1,0 +1,258 @@
+.equipment-container {
+    padding: 2rem;
+}
+
+.equipment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.equipment-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.equipment-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.equipment-filter-container {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.equipment-filter-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+.equipment-filter-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.equipment-filter-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.equipment-reset-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 38px;
+}
+
+.equipment-form-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+}
+
+.equipment-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.equipment-form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.equipment-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.equipment-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.equipment-input-error {
+    border: 1px solid #dc3545;
+}
+
+.equipment-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.equipment-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+}
+
+.equipment-cancel-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+.equipment-edit-btn {
+    background-color: #ffc107;
+    color: black;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+
+.equipment-delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.equipment-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+.equipment-table th {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #f2f2f2;
+}
+
+.equipment-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    vertical-align: middle; /* Выравнивание по центру ячейки */
+}
+
+/* --- ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ БЕЙДЖЕЙ СТАТУСОВ --- */
+
+.equipment-status-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em; /* Уменьшенные отступы */
+    font-size: 0.75em;     /* Уменьшенный шрифт (75% от размера текста в таблице) */
+    font-weight: 700;      /* Жирный шрифт для читаемости */
+    line-height: 1;        /* Компактная высота строки */
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 5px;   /* Сильное закругление краев (pill shape) */
+    color: #fff;           /* Белый текст по умолчанию */
+}
+
+.equipment-status-badge-spisano {
+    background-color: #dc3545; /* Красный */
+}
+
+.equipment-status-badge-remont {
+    background-color: #ffc107; /* Желтый */
+    color: #212529;            /* Темный текст для контраста на желтом */
+}
+
+.equipment-status-badge-slomano {
+    background-color: #fd7e14; /* Оранжевый */
+}
+
+.equipment-status-badge-novoe {
+    background-color: #28a745; /* Зеленый */
+}
+
+.equipment-status-badge-work {
+    background-color: #17a2b8; /* Голубой */
+}
+
+/* ------------------------------------------- */
+
+.equipment-count-info {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.equipment-validation-error {
+    color: #dc3545;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.equipment-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.equipment-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.equipment-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.equipment-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.equipment-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { maintenanceService } from '../services/maintenanceService';
 import { equipmentService } from '../services/equipmentService';
-import { commonStyles } from '../styles/globalStyles';
+import './TORepairPages.css';
 
 const TORepairPages = () => {
     const [toRepairs, setToRepairs] = useState([]);
@@ -240,12 +240,10 @@ const TORepairPages = () => {
     };
 
     const getInputStyle = (fieldName) => ({
-        ...styles.input,
         borderColor: validationErrors[fieldName] ? '#dc3545' : '#ccc',
     });
 
     const getRepairInputStyle = (fieldName) => ({
-        ...styles.input,
         borderColor: repairValidationErrors[fieldName] ? '#dc3545' : '#ccc',
     });
 
@@ -272,19 +270,19 @@ const TORepairPages = () => {
         }
         
         return (
-            <div style={commonStyles.pagination}>
-                <button style={commonStyles.pageButton} onClick={() => setToPage(0)} disabled={toPage === 0}>⏮ Первая</button>
-                <button style={commonStyles.pageButton} onClick={() => setToPage(toPage - 1)} disabled={toPage === 0}>◀ Назад</button>
-                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+            <div className="torepair-pagination">
+                <button className="torepair-page-button" onClick={() => setToPage(0)} disabled={toPage === 0}>⏮ Первая</button>
+                <button className="torepair-page-button" onClick={() => setToPage(toPage - 1)} disabled={toPage === 0}>◀ Назад</button>
+                {startPage > 0 && <span className="torepair-page-info">...</span>}
                 {pages.map(p => (
-                    <button key={p} style={p === toPage ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => setToPage(p)}>
+                    <button key={p} className={p === toPage ? "torepair-active-page-button" : "torepair-page-button"} onClick={() => setToPage(p)}>
                         {p + 1}
                     </button>
                 ))}
-                {endPage < toTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                <button style={commonStyles.pageButton} onClick={() => setToPage(toPage + 1)} disabled={toPage === toTotalPages - 1}>Вперед ▶</button>
-                <button style={commonStyles.pageButton} onClick={() => setToPage(toTotalPages - 1)} disabled={toPage === toTotalPages - 1}>Последняя ⏩</button>
-                <span style={commonStyles.pageInfo}>Страница {toPage + 1} из {toTotalPages} (всего {toTotalElements})</span>
+                {endPage < toTotalPages - 1 && <span className="torepair-page-info">...</span>}
+                <button className="torepair-page-button" onClick={() => setToPage(toPage + 1)} disabled={toPage === toTotalPages - 1}>Вперед ▶</button>
+                <button className="torepair-page-button" onClick={() => setToPage(toTotalPages - 1)} disabled={toPage === toTotalPages - 1}>Последняя ⏩</button>
+                <span className="torepair-page-info">Страница {toPage + 1} из {toTotalPages} (всего {toTotalElements})</span>
             </div>
         );
     };
@@ -306,75 +304,62 @@ const TORepairPages = () => {
         }
         
         return (
-            <div style={commonStyles.pagination}>
-                <button style={commonStyles.pageButton} onClick={() => setReqPage(0)} disabled={reqPage === 0}>⏮ Первая</button>
-                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqPage - 1)} disabled={reqPage === 0}>◀ Назад</button>
-                {startPage > 0 && <span style={commonStyles.pageInfo}>...</span>}
+            <div className="torepair-pagination">
+                <button className="torepair-page-button" onClick={() => setReqPage(0)} disabled={reqPage === 0}>⏮ Первая</button>
+                <button className="torepair-page-button" onClick={() => setReqPage(reqPage - 1)} disabled={reqPage === 0}>◀ Назад</button>
+                {startPage > 0 && <span className="torepair-page-info">...</span>}
                 {pages.map(p => (
-                    <button key={p} style={p === reqPage ? commonStyles.activePageButton : commonStyles.pageButton} onClick={() => setReqPage(p)}>
+                    <button key={p} className={p === reqPage ? "torepair-active-page-button" : "torepair-page-button"} onClick={() => setReqPage(p)}>
                         {p + 1}
                     </button>
                 ))}
-                {endPage < reqTotalPages - 1 && <span style={commonStyles.pageInfo}>...</span>}
-                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqPage + 1)} disabled={reqPage === reqTotalPages - 1}>Вперед ▶</button>
-                <button style={commonStyles.pageButton} onClick={() => setReqPage(reqTotalPages - 1)} disabled={reqPage === reqTotalPages - 1}>Последняя ⏩</button>
-                <span style={commonStyles.pageInfo}>Страница {reqPage + 1} из {reqTotalPages} (всего {reqTotalElements})</span>
+                {endPage < reqTotalPages - 1 && <span className="torepair-page-info">...</span>}
+                <button className="torepair-page-button" onClick={() => setReqPage(reqPage + 1)} disabled={reqPage === reqTotalPages - 1}>Вперед ▶</button>
+                <button className="torepair-page-button" onClick={() => setReqPage(reqTotalPages - 1)} disabled={reqPage === reqTotalPages - 1}>Последняя ⏩</button>
+                <span className="torepair-page-info">Страница {reqPage + 1} из {reqTotalPages} (всего {reqTotalElements})</span>
             </div>
         );
     };
 
-    const styles = {
-        ...commonStyles,
-        completeBtn: { backgroundColor: '#28a745', color: 'white', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer' },
-        statusSelect: { padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #ccc', cursor: 'pointer', minWidth: '120px', fontSize: '0.875rem' },
-        statusBadge: (status) => ({
-            display: 'inline-block',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontSize: '0.875rem',
-            backgroundColor: getStatusColor(status),
-            color: 'white',
-        }),
-    };
-
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h1 style={styles.title}>Техническое обслуживание и ремонты</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button style={{...styles.button, ...(activeTab === 'to' ? { backgroundColor: '#0056b3' } : {})}} onClick={() => setActiveTab('to')}>
+        <div className="torepair-container">
+            <div className="torepair-header">
+                <h1 className="torepair-title">Техническое обслуживание и ремонты</h1>
+                <div className="torepair-tabs">
+                    <button className={`torepair-tab ${activeTab === 'to' ? 'torepair-tab-active' : ''}`} onClick={() => setActiveTab('to')}>
                         Плановое ТО
                     </button>
-                    <button style={{...styles.button, ...(activeTab === 'requests' ? { backgroundColor: '#0056b3' } : {})}} onClick={() => setActiveTab('requests')}>
+                    <button className={`torepair-tab ${activeTab === 'requests' ? 'torepair-tab-active' : ''}`} onClick={() => setActiveTab('requests')}>
                         Заявки на ремонт
                     </button>
-                    <button style={styles.button} onClick={() => setShowForm(!showForm)}>
+                    <button className="torepair-button" onClick={() => setShowForm(!showForm)}>
                         {showForm ? 'Отмена' : '+ ' + (activeTab === 'to' ? 'Создать ТО' : 'Создать заявку')}
                     </button>
                 </div>
             </div>
 
-            {error && <div style={styles.error}>{error}</div>}
-            {success && <div style={styles.success}>{success}</div>}
+            {error && <div className="torepair-error">{error}</div>}
+            {success && <div className="torepair-success">{success}</div>}
 
             {showForm && activeTab === 'to' && (
-                <div style={styles.formContainer}>
+                <div className="torepair-form-container">
                     <h3>Новое плановое ТО</h3>
                     <form onSubmit={handleCreateTO}>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Оборудование *</label>
-                                <select style={getInputStyle('equipmentId')} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} required>
+                        <div className="torepair-form-row">
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Оборудование *</label>
+                                <select className="torepair-select" style={getInputStyle('equipmentId')} value={formData.equipmentId} onChange={(e) => setFormData({...formData, equipmentId: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
-                                {validationErrors.equipmentId && <div style={getErrorStyle()}>{validationErrors.equipmentId}</div>}
+                                {validationErrors.equipmentId && <div className="torepair-validation-error">{validationErrors.equipmentId}</div>}
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Тип ТО *</label>
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Тип ТО *</label>
                                 <input 
                                     type="text" 
                                     placeholder="Например: Смазка (не более 50 символов)"
+                                    className="torepair-input"
                                     style={getInputStyle('type')}
                                     value={formData.type} 
                                     onChange={(e) => {
@@ -387,21 +372,21 @@ const TORepairPages = () => {
                                     }} 
                                     required 
                                 />
-                                {validationErrors.type && <div style={getErrorStyle()}>{validationErrors.type}</div>}
+                                {validationErrors.type && <div className="torepair-validation-error">{validationErrors.type}</div>}
                                 <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
                                     {formData.type.length}/50 символов
                                 </div>
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Плановая дата *</label>
-                                <input type="date" style={getInputStyle('plannedDate')} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
-                                {validationErrors.plannedDate && <div style={getErrorStyle()}>{validationErrors.plannedDate}</div>}
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Плановая дата *</label>
+                                <input type="date" className="torepair-input" style={getInputStyle('plannedDate')} value={formData.plannedDate} onChange={(e) => setFormData({...formData, plannedDate: e.target.value})} required />
+                                {validationErrors.plannedDate && <div className="torepair-validation-error">{validationErrors.plannedDate}</div>}
                             </div>
                         </div>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Описание</label>
-                                <input type="text" style={getInputStyle('description')} placeholder="Дополнительная информация (не более 100 символов)" value={formData.description} onChange={(e) => {
+                        <div className="torepair-form-row">
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Описание</label>
+                                <input type="text" className="torepair-input" style={getInputStyle('description')} placeholder="Дополнительная информация (не более 100 символов)" value={formData.description} onChange={(e) => {
                                     if (e.target.value.length <= 100) {
                                         setFormData({...formData, description: e.target.value});
                                         setValidationErrors({...validationErrors, description: ''});
@@ -409,16 +394,16 @@ const TORepairPages = () => {
                                         setValidationErrors({...validationErrors, description: 'Описание не должно превышать 100 символов'});
                                     }
                                 }} />
-                                {validationErrors.description && <div style={getErrorStyle()}>{validationErrors.description}</div>}
+                                {validationErrors.description && <div className="torepair-validation-error">{validationErrors.description}</div>}
                                 <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
                                     {formData.description.length}/100 символов
                                 </div>
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Ответственный работник</label>
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Ответственный работник</label>
                                 <input 
                                     type="text" 
-                                    style={styles.input}
+                                    className="torepair-input"
                                     placeholder="ФИО (не более 100 символов)"
                                     value={formData.worker} 
                                     onChange={(e) => {
@@ -432,29 +417,30 @@ const TORepairPages = () => {
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" style={styles.button}>Сохранить</button>
+                        <button type="submit" className="torepair-button">Сохранить</button>
                     </form>
                 </div>
             )}
 
             {showForm && activeTab === 'requests' && (
-                <div style={styles.formContainer}>
+                <div className="torepair-form-container">
                     <h3>Новая заявка на ремонт</h3>
                     <form onSubmit={handleCreateRepair}>
-                        <div style={styles.formRow}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Оборудование *</label>
-                                <select style={getRepairInputStyle('equipmentInventoryNumber')} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} required>
+                        <div className="torepair-form-row">
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Оборудование *</label>
+                                <select className="torepair-select" style={getRepairInputStyle('equipmentInventoryNumber')} value={repairForm.equipmentInventoryNumber} onChange={(e) => setRepairForm({...repairForm, equipmentInventoryNumber: e.target.value})} required>
                                     <option value="">Выберите оборудование</option>
                                     {equipment.map(eq => <option key={eq.id} value={eq.id}>{eq.name} (№{eq.id})</option>)}
                                 </select>
-                                {repairValidationErrors.equipmentInventoryNumber && <div style={getErrorStyle()}>{repairValidationErrors.equipmentInventoryNumber}</div>}
+                                {repairValidationErrors.equipmentInventoryNumber && <div className="torepair-validation-error">{repairValidationErrors.equipmentInventoryNumber}</div>}
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Кто зафиксировал *</label>
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Кто зафиксировал *</label>
                                 <input 
                                     type="text" 
                                     placeholder="ФИО сотрудника или клиента (не более 50 символов)"
+                                    className="torepair-input"
                                     style={getRepairInputStyle('creator')}
                                     value={repairForm.creator} 
                                     onChange={(e) => {
@@ -467,14 +453,14 @@ const TORepairPages = () => {
                                     }} 
                                     required 
                                 />
-                                {repairValidationErrors.creator && <div style={getErrorStyle()}>{repairValidationErrors.creator}</div>}
+                                {repairValidationErrors.creator && <div className="torepair-validation-error">{repairValidationErrors.creator}</div>}
                                 <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
                                     {repairForm.creator.length}/50 символов
                                 </div>
                             </div>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Описание</label>
-                                <input type="text" style={getRepairInputStyle('description')} placeholder="Описание проблемы (не более 100 символов)" value={repairForm.description} onChange={(e) => {
+                            <div className="torepair-form-group">
+                                <label className="torepair-label">Описание</label>
+                                <input type="text" className="torepair-input" style={getRepairInputStyle('description')} placeholder="Описание проблемы (не более 100 символов)" value={repairForm.description} onChange={(e) => {
                                     if (e.target.value.length <= 100) {
                                         setRepairForm({...repairForm, description: e.target.value});
                                         setRepairValidationErrors({...repairValidationErrors, description: ''});
@@ -482,13 +468,13 @@ const TORepairPages = () => {
                                         setRepairValidationErrors({...repairValidationErrors, description: 'Описание не должно превышать 100 символов'});
                                     }
                                 }} />
-                                {repairValidationErrors.description && <div style={getErrorStyle()}>{repairValidationErrors.description}</div>}
+                                {repairValidationErrors.description && <div className="torepair-validation-error">{repairValidationErrors.description}</div>}
                                 <div style={{ fontSize: '0.7rem', color: '#666', marginTop: '0.25rem' }}>
                                     {repairForm.description.length}/100 символов
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" style={styles.button}>Создать заявку</button>
+                        <button type="submit" className="torepair-button">Создать заявку</button>
                     </form>
                 </div>
             )}
@@ -500,28 +486,28 @@ const TORepairPages = () => {
                         <p>Загрузка...</p>
                     ) : (
                         <>
-                            <table style={styles.table}>
+                            <table className="torepair-table">
                                 <thead>
                                     <tr>
-                                        <th style={styles.th}>ID</th>
-                                        <th style={styles.th}>Оборудование</th>
-                                        <th style={styles.th}>Тип ТО</th>
-                                        <th style={styles.th}>Плановая дата</th>
-                                        <th style={styles.th}>Статус</th>
-                                        <th style={styles.th}>Действия</th>
+                                        <th>ID</th>
+                                        <th>Оборудование</th>
+                                        <th>Тип ТО</th>
+                                        <th>Плановая дата</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {toRepairs.map(to => (
                                         <tr key={to.id}>
-                                            <td style={styles.td}>{to.id}</td>
-                                            <td style={styles.td}>{getEquipmentName(to.equipmentId)}</td>
-                                            <td style={styles.td}>{to.type}</td>
-                                            <td style={styles.td}>{to.plannedDate}</td>
-                                            <td style={styles.td}><span style={styles.statusBadge(to.status || 'Запланировано')}>{to.status || 'Запланировано'}</span></td>
-                                            <td style={styles.td}>
+                                            <td>{to.id}</td>
+                                            <td>{getEquipmentName(to.equipmentId)}</td>
+                                            <td>{to.type}</td>
+                                            <td>{to.plannedDate}</td>
+                                            <td><span className={`torepair-status-badge ${to.status === 'Запланировано' || !to.status ? 'torepair-status-zaplanirovano' : ''}`}>{to.status || 'Запланировано'}</span></td>
+                                            <td>
                                                 {(to.status === 'Запланировано' || !to.status) && (
-                                                    <button style={styles.completeBtn} onClick={() => handleCompleteTO(to.id, to.equipmentId)} disabled={updatingId === to.id}>
+                                                    <button className="torepair-complete-btn" onClick={() => handleCompleteTO(to.id, to.equipmentId)} disabled={updatingId === to.id}>
                                                         {updatingId === to.id ? '...' : 'Выполнить'}
                                                     </button>
                                                 )}
@@ -543,29 +529,29 @@ const TORepairPages = () => {
                         <p>Загрузка...</p>
                     ) : (
                         <>
-                            <table style={styles.table}>
+                            <table className="torepair-table">
                                 <thead>
                                     <tr>
-                                        <th style={styles.th}>ID</th>
-                                        <th style={styles.th}>Оборудование</th>
-                                        <th style={styles.th}>Кто зафиксировал</th>
-                                        <th style={styles.th}>Описание</th>
-                                        <th style={styles.th}>Дата</th>
-                                        <th style={styles.th}>Статус</th>
-                                        <th style={styles.th}>Действия</th>
+                                        <th>ID</th>
+                                        <th>Оборудование</th>
+                                        <th>Кто зафиксировал</th>
+                                        <th>Описание</th>
+                                        <th>Дата</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {requests.map(req => (
                                         <tr key={req.id}>
-                                            <td style={styles.td}>{req.id}</td>
-                                            <td style={styles.td}>{getEquipmentName(req.equipmentInventoryNumber)}</td>
-                                            <td style={styles.td}>{req.creator || '-'}</td>
-                                            <td style={styles.td}>{req.description || '-'}</td>
-                                            <td style={styles.td}>{req.created_at ? new Date(req.created_at).toLocaleDateString() : '-'}</td>
-                                            <td style={styles.td}><span style={styles.statusBadge(req.status)}>{req.status}</span></td>
-                                            <td style={styles.td}>
-                                                <select style={styles.statusSelect} value={req.status} onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)} disabled={updatingId === req.id}>
+                                            <td>{req.id}</td>
+                                            <td>{getEquipmentName(req.equipmentInventoryNumber)}</td>
+                                            <td>{req.creator || '-'}</td>
+                                            <td>{req.description || '-'}</td>
+                                            <td>{req.created_at ? new Date(req.created_at).toLocaleDateString() : '-'}</td>
+                                            <td><span className={`torepair-status-badge ${req.status === 'Открыта' ? 'torepair-status-otkrita' : req.status === 'В работе' ? 'torepair-status-vrabote' : req.status === 'Выполнена' ? 'torepair-status-vipolnena' : ''}`}>{req.status}</span></td>
+                                            <td>
+                                                <select className="torepair-status-select" value={req.status} onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)} disabled={updatingId === req.id}>
                                                     {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                 </select>
                                                 {updatingId === req.id && <span> ⏳</span>}

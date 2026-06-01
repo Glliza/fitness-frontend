@@ -1,0 +1,212 @@
+.torepair-container {
+    padding: 2rem;
+}
+
+.torepair-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.torepair-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.torepair-tabs {
+    display: flex;
+    gap: 1rem;
+}
+
+.torepair-tab {
+    padding: 0.5rem 1rem;
+    background-color: #e9ecef;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.torepair-tab-active {
+    background-color: #007bff;
+    color: white;
+}
+
+.torepair-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.torepair-complete-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.torepair-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.torepair-success {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.torepair-form-container {
+    margin-top: 2rem;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: white;
+    margin-bottom: 2rem;
+}
+
+.torepair-form-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.torepair-form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.torepair-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: bold;
+}
+
+.torepair-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.torepair-input-error {
+    border-color: #dc3545;
+}
+
+.torepair-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.torepair-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    margin-top: 1rem;
+}
+
+.torepair-table th {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    background-color: #f2f2f2;
+}
+
+.torepair-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+}
+
+.torepair-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    color: white;
+}
+
+.torepair-status-otkrita {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.torepair-status-vrabote {
+    background-color: #17a2b8;
+}
+
+.torepair-status-vipolnena {
+    background-color: #28a745;
+}
+
+.torepair-status-zaplanirovano {
+    background-color: #6c757d;
+}
+
+.torepair-status-select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    min-width: 120px;
+    font-size: 0.875rem;
+}
+
+.torepair-validation-error {
+    color: #dc3545;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.torepair-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.torepair-page-button {
+    background-color: #e9ecef;
+    color: #333;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.torepair-page-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.torepair-active-page-button {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.torepair-page-info {
+    margin: 0 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
