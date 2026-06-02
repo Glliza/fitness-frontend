@@ -54,7 +54,7 @@ const TORepairPages = () => {
 
     const loadToRepairs = useCallback(async (page = toPage) => {
         try {
-            const response = await maintenanceService.getAllTO(page, toPageSize, 'plannedDate', 'desc');
+            const response = await maintenanceService.getAllTO(page, toPageSize, 'id', 'asc');
             setToRepairs(response.data.content);
             setToTotalPages(response.data.totalPages);
             setToTotalElements(response.data.totalElements);

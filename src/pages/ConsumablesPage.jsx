@@ -264,7 +264,7 @@ const ConsumablesPage = () => {
                                 ))}
                             </select>
                         </div>
-                        <div className="consumables-form-group">
+                        <div className="consumables-form-group" style={{ marginRight: '20px' }}>
                             <label className="consumables-label">Количество</label>
                             <input
                                 type="number"

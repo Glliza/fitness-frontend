@@ -42,7 +42,7 @@ const RequestBuyPage = () => {
     const loadRequests = useCallback(async (currentPage = page) => {
         try {
             setLoading(true);
-            const response = await requestBuyService.getAll(currentPage, pageSize, 'createdAt', 'desc');
+            const response = await requestBuyService.getAll(currentPage, pageSize, 'createdAt', 'asc');
             setRequests(response.data.content);
             setTotalPages(response.data.totalPages);
             setTotalElements(response.data.totalElements);

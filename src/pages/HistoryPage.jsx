@@ -168,7 +168,7 @@ const HistoryPage = () => {
                             <option value="repair">Только ремонты</option>
                         </select>
                     </div>
-                    <div className="history-filter-group">
+                    <div className="history-filter-group" style={{ marginRight: '20px' }}>
                         <label className="history-filter-label">Дата от</label>
                         <input 
                             type="date" 
@@ -177,7 +177,7 @@ const HistoryPage = () => {
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </div>
-                    <div className="history-filter-group">
+                    <div className="history-filter-group" style={{ marginRight: '10px' }}>
                         <label className="history-filter-label">Дата до</label>
                         <input 
                             type="date" 
