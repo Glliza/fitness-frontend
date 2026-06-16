@@ -55,6 +55,9 @@ const TORepairPages = () => {
     const loadToRepairs = useCallback(async (page = toPage) => {
         try {
             const response = await maintenanceService.getAllTO(page, toPageSize, 'id', 'asc');
+            console.log('ОТВЕТ СЕРВЕРА (ТО)');
+            console.log('Содержимое:', response.data.content);
+            console.log('Первая запись:', response.data.content[0]);
             setToRepairs(response.data.content);
             setToTotalPages(response.data.totalPages);
             setToTotalElements(response.data.totalElements);
@@ -66,7 +69,10 @@ const TORepairPages = () => {
 
     const loadRequests = useCallback(async (page = reqPage) => {
         try {
-            const response = await maintenanceService.getAllRequests(page, reqPageSize, 'createdAt', 'desc');
+            const response = await maintenanceService.getAllRequests(page, reqPageSize, 'id', 'asc');
+            console.log(' ОТВЕТ СЕРВЕРА (ЗАЯВКИ)');
+            console.log('Содержимое:', response.data.content);
+            console.log('Первая запись:', response.data.content[0]);
             setRequests(response.data.content);
             setReqTotalPages(response.data.totalPages);
             setReqTotalElements(response.data.totalElements);
@@ -486,36 +492,60 @@ const TORepairPages = () => {
                         <p>Загрузка...</p>
                     ) : (
                         <>
-                            <table className="torepair-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Оборудование</th>
-                                        <th>Тип ТО</th>
-                                        <th>Плановая дата</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {toRepairs.map(to => (
-                                        <tr key={to.id}>
-                                            <td>{to.id}</td>
-                                            <td>{getEquipmentName(to.equipmentId)}</td>
-                                            <td>{to.type}</td>
-                                            <td>{to.plannedDate}</td>
-                                            <td><span className={`torepair-status-badge ${to.status === 'Запланировано' || !to.status ? 'torepair-status-zaplanirovano' : ''}`}>{to.status || 'Запланировано'}</span></td>
-                                            <td>
-                                                {(to.status === 'Запланировано' || !to.status) && (
-                                                    <button className="torepair-complete-btn" onClick={() => handleCompleteTO(to.id, to.equipmentId)} disabled={updatingId === to.id}>
-                                                        {updatingId === to.id ? '...' : 'Выполнить'}
-                                                    </button>
-                                                )}
-                                            </td>
+                            <div className="torepair-table-wrapper">
+                                <table className="torepair-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Оборудование</th>
+                                            <th>Тип ТО</th>
+                                            <th>Плановая дата</th>
+                                            <th>Описание</th>
+                                            <th>Ответственный</th>
+                                            <th>Статус</th>
+                                            <th>Действия</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {toRepairs.map(to => {
+                                            // Определяем класс статуса
+                                            let statusClass = 'torepair-status-badge';
+                                            if (to.status === 'Выполнена') {
+                                                statusClass += ' torepair-status-vipolnena';
+                                            } else {
+                                                statusClass += ' torepair-status-zaplanirovano';
+                                            }
+                                            
+                                            return (
+                                                <tr key={to.id}>
+                                                    <td>{to.id}</td>
+                                                    <td className="torepair-cell-equipment">{getEquipmentName(to.equipmentId)}</td>
+                                                    <td>{to.type}</td>
+                                                    <td>{to.plannedDate}</td>
+                                                    <td className="torepair-cell-description">{to.description || '-'}</td>
+                                                    <td className="torepair-cell-worker">{to.worker || '-'}</td>
+                                                    <td>
+                                                        <span className={statusClass}>
+                                                            {to.status || 'Запланировано'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {(!to.status || to.status === 'Запланировано') && (
+                                                            <button 
+                                                                className="torepair-complete-btn" 
+                                                                onClick={() => handleCompleteTO(to.id, to.equipmentId)} 
+                                                                disabled={updatingId === to.id}
+                                                            >
+                                                                {updatingId === to.id ? '...' : 'Выполнить'}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                             {renderTOPagination()}
                         </>
                     )}
@@ -529,37 +559,61 @@ const TORepairPages = () => {
                         <p>Загрузка...</p>
                     ) : (
                         <>
-                            <table className="torepair-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Оборудование</th>
-                                        <th>Кто зафиксировал</th>
-                                        <th>Описание</th>
-                                        <th>Дата</th>
-                                        <th>Статус</th>
-                                        <th>Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {requests.map(req => (
-                                        <tr key={req.id}>
-                                            <td>{req.id}</td>
-                                            <td>{getEquipmentName(req.equipmentInventoryNumber)}</td>
-                                            <td>{req.creator || '-'}</td>
-                                            <td>{req.description || '-'}</td>
-                                            <td>{req.created_at ? new Date(req.created_at).toLocaleDateString() : '-'}</td>
-                                            <td><span className={`torepair-status-badge ${req.status === 'Открыта' ? 'torepair-status-otkrita' : req.status === 'В работе' ? 'torepair-status-vrabote' : req.status === 'Выполнена' ? 'torepair-status-vipolnena' : ''}`}>{req.status}</span></td>
-                                            <td>
-                                                <select className="torepair-status-select" value={req.status} onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)} disabled={updatingId === req.id}>
-                                                    {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                </select>
-                                                {updatingId === req.id && <span> ⏳</span>}
-                                            </td>
+                            <div className="torepair-table-wrapper">
+                                <table className="torepair-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Оборудование</th>
+                                            <th>Кто зафиксировал</th>
+                                            <th>Описание</th>
+                                            <th>Дата</th>
+                                            <th>Статус</th>
+                                            <th>Действия</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {requests.map(req => {
+                                            let statusClass = 'torepair-status-badge';
+                                            if (req.status === 'Открыта') {
+                                                statusClass += ' torepair-status-otkrita';
+                                            } else if (req.status === 'В работе') {
+                                                statusClass += ' torepair-status-vrabote';
+                                            } else if (req.status === 'Выполнена') {
+                                                statusClass += ' torepair-status-vipolnena';
+                                            }
+                                            
+                                            return (
+                                                <tr key={req.id}>
+                                                    <td>{req.id}</td>
+                                                    <td className="torepair-cell-equipment">{getEquipmentName(req.equipmentInventoryNumber)}</td>
+                                                    <td className="torepair-cell-worker">{req.creator || '-'}</td>
+                                                    <td className="torepair-cell-description">{req.description || '-'}</td>
+                                                    <td>{req.created_at ? new Date(req.created_at).toLocaleString() : '-'}</td>
+                                                    <td>
+                                                        <span className={statusClass}>
+                                                            {req.status || 'Открыта'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <select 
+                                                            className="torepair-status-select" 
+                                                            value={req.status} 
+                                                            onChange={(e) => handleUpdateRequestStatus(req.id, e.target.value)} 
+                                                            disabled={updatingId === req.id}
+                                                        >
+                                                            {statusOptions.map(opt => (
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            ))}
+                                                        </select>
+                                                        {updatingId === req.id && <span> ⏳</span>}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                             {renderReqPagination()}
                         </>
                     )}

@@ -210,3 +210,80 @@
     font-size: 0.875rem;
     color: #6c757d;
 }
+
+/* Контейнер для таблицы с переносом */
+.torepair-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.torepair-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    min-width: 700px;
+}
+
+.torepair-table th,
+.torepair-table td {
+    border: 1px solid #ddd;
+    padding: 0.5rem 0.5rem;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 0.85rem;
+    word-wrap: break-word;
+    max-width: 200px;
+}
+
+/* Перенос длинных слов */
+.torepair-cell-equipment {
+    min-width: 120px;
+    max-width: 150px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.torepair-cell-description {
+    min-width: 150px;
+    max-width: 250px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.torepair-cell-worker {
+    min-width: 100px;
+    max-width: 150px;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+/* Статус "Выполнена" - зелёный */
+.torepair-status-vipolnena {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Статус "Запланировано" - жёлтый */
+.torepair-status-zaplanirovano {
+    background-color: #ffc107;
+    color: #333;
+}
+
+/* Статус "Открыта" - оранжевый */
+.torepair-status-otkrita {
+    background-color: #fd7e14;
+    color: white;
+}
+
+/* Статус "В работе" - синий */
+.torepair-status-vrabote {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.torepair-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
